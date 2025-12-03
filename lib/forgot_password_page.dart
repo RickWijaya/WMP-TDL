@@ -1,39 +1,19 @@
-import 'package:finalproject/forgot_password_page.dart';
 import 'package:flutter/material.dart';
-import 'signup_page.dart';
-import 'dashboard_page.dart'; // Import dashboard page
+import 'login_page.dart';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class ForgotPasswordPage extends StatefulWidget {
+  const ForgotPasswordPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: const LoginPage(),
-    );
-  }
+  State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
 }
 
-// ---------- LOGIN PAGE ----------
-
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
-
-  @override
-  State<LoginPage> createState() => _LoginPageState();
-}
-
-class _LoginPageState extends State<LoginPage> {
+class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   bool _obscurePassword = true;
 
-  // Warna sesuai desain
-  final Color _navy = const Color(0xFF1A2342); // Biru tua gelap
-  final Color _gold = const Color(0xFFE0A938); // Emas/Kuning
+  // Colors from your design
+  final Color _navy = const Color(0xFF1A2342);
+  final Color _gold = const Color(0xFFE0A938);
   final Color _white = Colors.white;
   final Color _greyText = const Color(0xFF8D96A5);
   final Color _inputBorder = const Color(0xFFE0E0E0);
@@ -41,11 +21,11 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _navy, // Background utama biru tua
+      backgroundColor: _navy,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // BAGIAN ATAS (Welcome Text)
+          // Top Section
           Padding(
             padding: const EdgeInsets.only(top: 80, left: 24, right: 24, bottom: 40),
             child: Column(
@@ -57,7 +37,6 @@ class _LoginPageState extends State<LoginPage> {
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    fontFamily: 'Serif', // Menggunakan font serif jika ada, atau default
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -65,14 +44,14 @@ class _LoginPageState extends State<LoginPage> {
                   'Sign in to your account',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white70,
                   ),
                 ),
               ],
             ),
           ),
 
-          // BAGIAN BAWAH (White Card)
+          // Bottom White Card
           Expanded(
             child: Container(
               width: double.infinity,
@@ -93,35 +72,26 @@ class _LoginPageState extends State<LoginPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Label Email
-                      Text(
-                        'Email Address',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: _navy,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildTextField(
-                        hint: 'you@example.com',
+                      // Email
+                      _label("Email Address"),
+                      _inputField(
+                        hint: "you@example.com",
                         keyboardType: TextInputType.emailAddress,
                       ),
-
                       const SizedBox(height: 20),
 
-                      // Label Password
-                      Text(
-                        'Password',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: _navy,
-                        ),
+                      // OTP
+                      _label("OTP"),
+                      _inputField(
+                        hint: "XXXXXX",
+                        keyboardType: TextInputType.number,
                       ),
-                      const SizedBox(height: 8),
-                      _buildTextField(
-                        hint: '••••••••',
+                      const SizedBox(height: 20),
+
+                      // Password
+                      _label("Password"),
+                      _inputField(
+                        hint: "••••••••",
                         obscure: _obscurePassword,
                         suffixIcon: IconButton(
                           onPressed: () {
@@ -130,48 +100,22 @@ class _LoginPageState extends State<LoginPage> {
                             });
                           },
                           icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
+                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
                             color: Colors.black54,
                           ),
                         ),
                       ),
+                      const SizedBox(height: 40),
 
-                      const SizedBox(height: 30),
-
-                      // Forgot Password
-                      Center(
-                        child: TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const ForgotPasswordPage()),
-                            );
-                          },
-                          child: Text(
-                            'Forgot Password?',
-                            style: TextStyle(
-                              color: _gold,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // BUTTON LOGIN
+                      // RESET BUTTON
                       SizedBox(
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
                           onPressed: () {
-                            // Navigasi ke Dashboard Page
                             Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(builder: (context) => const DashboardPage()),
+                              MaterialPageRoute(builder: (context) => const LoginPage()),
                             );
                           },
                           style: ElevatedButton.styleFrom(
@@ -179,11 +123,9 @@ class _LoginPageState extends State<LoginPage> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            elevation: 5,
-                            shadowColor: _navy.withOpacity(0.4),
                           ),
                           child: Text(
-                            'Login',
+                            "Reset",
                             style: TextStyle(
                               color: _gold,
                               fontSize: 18,
@@ -194,21 +136,15 @@ class _LoginPageState extends State<LoginPage> {
                       ),
 
                       const SizedBox(height: 40),
-
-                      // Garis Pemisah
-                      Divider(
-                        color: Colors.grey.withOpacity(0.2),
-                        thickness: 1,
-                      ),
-
+                      Divider(color: Colors.grey.withOpacity(0.3)),
                       const SizedBox(height: 20),
 
-                      // Footer (Don't have account?)
+                      // FOOTER
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            "Don't have an account?",
+                            "Remember your password?",
                             style: TextStyle(
                               color: _gold,
                               fontSize: 14,
@@ -216,17 +152,17 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           TextButton(
                             onPressed: () {
-                              Navigator.push(
+                              Navigator.pushReplacement(
                                 context,
-                                MaterialPageRoute(builder: (context) => const SignupPage()),
+                                MaterialPageRoute(builder: (context) => const LoginPage()),
                               );
                             },
                             child: Text(
-                              'Sign Up',
+                              "Log In",
                               style: TextStyle(
                                 color: _navy,
-                                fontSize: 14,
                                 fontWeight: FontWeight.bold,
+                                fontSize: 14,
                               ),
                             ),
                           ),
@@ -243,21 +179,35 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildTextField({
+  // LABEL
+  Widget _label(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        color: _navy,
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+
+  // TEXT FIELD
+  Widget _inputField({
     required String hint,
     bool obscure = false,
-    Widget? suffixIcon,
     TextInputType keyboardType = TextInputType.text,
+    Widget? suffixIcon,
   }) {
     return TextField(
       obscureText: obscure,
       keyboardType: keyboardType,
       decoration: InputDecoration(
         filled: true,
-        fillColor: const Color(0xFFF5F5F5), // Warna abu-abu sangat muda untuk background input
+        fillColor: const Color(0xFFF5F5F5),
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.grey),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: _inputBorder),
@@ -270,7 +220,6 @@ class _LoginPageState extends State<LoginPage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: _navy, width: 1.5),
         ),
-        suffixIcon: suffixIcon,
       ),
     );
   }
