@@ -1,25 +1,8 @@
-import 'package:finalproject/forgot_password_page.dart';
 import 'package:flutter/material.dart';
+import 'package:finalproject/forgot_password_page.dart';
 import 'signup_page.dart';
-import 'dashboard_page.dart'; // Import dashboard page
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: const LoginPage(),
-    );
-  }
-}
-
-// ---------- LOGIN PAGE ----------
+import 'dashboard_page.dart';
+import '../services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -30,6 +13,11 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true;
+  bool _isLoading = false;
+
+  // Controllers
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   // Warna sesuai desain
   final Color _navy = const Color(0xFF1A2342); // Biru tua gelap
@@ -37,6 +25,52 @@ class _LoginPageState extends State<LoginPage> {
   final Color _white = Colors.white;
   final Color _greyText = const Color(0xFF8D96A5);
   final Color _inputBorder = const Color(0xFFE0E0E0);
+
+  final AuthService _authService = AuthService();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill email and password')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final error = await _authService.login(
+      email: email,
+      password: password,
+    );
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
+      return;
+    }
+
+    // Login sukses → pergi ke Dashboard, hapus history
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const DashboardPage()),
+          (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +81,8 @@ class _LoginPageState extends State<LoginPage> {
         children: [
           // BAGIAN ATAS (Welcome Text)
           Padding(
-            padding: const EdgeInsets.only(top: 80, left: 24, right: 24, bottom: 40),
+            padding: const EdgeInsets.only(
+                top: 80, left: 24, right: 24, bottom: 40),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -57,7 +92,7 @@ class _LoginPageState extends State<LoginPage> {
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    fontFamily: 'Serif', // Menggunakan font serif jika ada, atau default
+                    fontFamily: 'Serif',
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -89,7 +124,8 @@ class _LoginPageState extends State<LoginPage> {
                   topRight: Radius.circular(40),
                 ),
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 24, vertical: 40),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -105,6 +141,7 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 8),
                       _buildTextField(
                         hint: 'you@example.com',
+                        controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                       ),
 
@@ -122,6 +159,7 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 8),
                       _buildTextField(
                         hint: '••••••••',
+                        controller: _passwordController,
                         obscure: _obscurePassword,
                         suffixIcon: IconButton(
                           onPressed: () {
@@ -146,7 +184,10 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const ForgotPasswordPage()),
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                const ForgotPasswordPage(),
+                              ),
                             );
                           },
                           child: Text(
@@ -167,13 +208,7 @@ class _LoginPageState extends State<LoginPage> {
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
-                          onPressed: () {
-                            // Navigasi ke Dashboard Page
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (context) => const DashboardPage()),
-                            );
-                          },
+                          onPressed: _isLoading ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _navy,
                             shape: RoundedRectangleBorder(
@@ -182,7 +217,17 @@ class _LoginPageState extends State<LoginPage> {
                             elevation: 5,
                             shadowColor: _navy.withOpacity(0.4),
                           ),
-                          child: Text(
+                          child: _isLoading
+                              ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white),
+                            ),
+                          )
+                              : Text(
                             'Login',
                             style: TextStyle(
                               color: _gold,
@@ -218,7 +263,9 @@ class _LoginPageState extends State<LoginPage> {
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const SignupPage()),
+                                MaterialPageRoute(
+                                  builder: (context) => const SignupPage(),
+                                ),
                               );
                             },
                             child: Text(
@@ -245,19 +292,22 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildTextField({
     required String hint,
+    required TextEditingController controller,
     bool obscure = false,
     Widget? suffixIcon,
     TextInputType keyboardType = TextInputType.text,
   }) {
     return TextField(
+      controller: controller,
       obscureText: obscure,
       keyboardType: keyboardType,
       decoration: InputDecoration(
         filled: true,
-        fillColor: const Color(0xFFF5F5F5), // Warna abu-abu sangat muda untuk background input
+        fillColor: const Color(0xFFF5F5F5),
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.grey),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: _inputBorder),

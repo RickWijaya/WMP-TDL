@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "508635875276",
+    "project_id": "wmp-tdl",
+    "storage_bucket": "wmp-tdl.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:508635875276:android:29e368c44f7a86a52cbf69",
+        "android_client_info": {
+          "package_name": "com.example.finalproject"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTqmdIQWHsC3h7eaqu7Rdnpo7xayMM2RQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
