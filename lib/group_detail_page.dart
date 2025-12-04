@@ -31,7 +31,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const DashboardPage()),
-          (route) => false,
+              (route) => false,
         );
       } else if (index == 1) {
         Navigator.pushReplacement(
@@ -113,22 +113,31 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                   children: [
                     // Daftar Anggota
                     _buildMemberItem('Name', isAdmin: true),
-                    const Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 16),
+                    const Divider(
+                      height: 1,
+                      thickness: 0.5,
+                      indent: 16,
+                      endIndent: 16,
+                    ),
                     _buildMemberItem('Title'), // Contoh nama anggota lain
-                    const Divider(height: 1, thickness: 0.5, indent: 16, endIndent: 16),
-                    
+                    const Divider(
+                      height: 1,
+                      thickness: 0.5,
+                      indent: 16,
+                      endIndent: 16,
+                    ),
+
                     // Tombol Leave
                     Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: TextButton(
                         onPressed: () {
-                          // TODO: Logika Leave Group
                           _showLeaveDialog();
                         },
                         child: const Text(
                           'Leave',
                           style: TextStyle(
-                            color: Colors.red, // Warna merah sesuai desain
+                            color: Colors.red,
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                           ),
@@ -143,36 +152,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
         ),
       ),
 
-      // BOTTOM NAVIGATION BAR
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.file_upload_outlined),
-            label: 'Join Group',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle_outline),
-            label: 'Create Group',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: _navy,
-        unselectedItemColor: Colors.grey[600],
-        onTap: _onItemTapped,
-        backgroundColor: _navy,
-        // Agar ikon tidak aktif tetap terlihat jelas di background navy, kita atur warnanya
-        unselectedIconTheme: const IconThemeData(color: Colors.white70),
-        selectedIconTheme: const IconThemeData(color: Colors.white),
-        unselectedLabelStyle: const TextStyle(color: Colors.white70),
-        selectedLabelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        type: BottomNavigationBarType.fixed,
-      ),
-    );
+       );
   }
 
   Widget _buildMemberItem(String name, {bool isAdmin = false}) {
@@ -189,12 +169,27 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
               color: Colors.black87,
             ),
           ),
+          // Admin label or Kick button
           if (isAdmin)
             const Text(
               'Admin',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey,
+              ),
+            )
+          else
+            TextButton(
+              onPressed: () {
+                _showKickDialog(name);
+              },
+              child: const Text(
+                'Kick',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.red,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
         ],
@@ -205,23 +200,51 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   void _showLeaveDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Leave Group'),
         content: Text('Are you sure you want to leave ${widget.groupName}?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // Tutup dialog
-              Navigator.pop(context); // Kembali ke halaman sebelumnya (misal Dashboard)
+              Navigator.pop(dialogContext); // Tutup dialog
+              Navigator.pop(context); // Kembali ke halaman sebelumnya
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('You left the group')),
               );
             },
             child: const Text('Leave', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showKickDialog(String name) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Kick User'),
+        content: Text('Are you sure you want to kick $name?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext); // close dialog
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('User kicked')),
+              );
+            },
+            child: const Text(
+              'Kick',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),

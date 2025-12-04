@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'group_detail_page.dart';  // <-- Tambahkan ini, sesuaikan path
-import 'package:flutter/material.dart';
+import 'group_detail_page.dart';
+
 class ClassPage extends StatefulWidget {
   final String className;
 
@@ -11,7 +11,7 @@ class ClassPage extends StatefulWidget {
 }
 
 class _ClassPageState extends State<ClassPage> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 0; // (not used anymore but kept in case you need later)
 
   void _onItemTapped(int index) {
     setState(() {
@@ -32,48 +32,46 @@ class _ClassPageState extends State<ClassPage> {
       backgroundColor: _background,
       appBar: AppBar(
         backgroundColor: _navy,
-        title: const Text('Class Page', style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
+        // Group name above (replace "Class Page")
+        title: Text(
+          widget.className,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
+        // "Detail" also above, as an action
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      GroupDetailPage(groupName: widget.className),
+                ),
+              );
+            },
+            child: const Text(
+              'Detail',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
       ),
 
       body: ListView(
         padding: const EdgeInsets.all(24.0),
         children: [
-          // Title + Detail Button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "{${widget.className}}",
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w800,
-                  fontFamily: 'Serif',
-                ),
-              ),
-
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => GroupDetailPage(groupName: 'Tes',)));
-                },
-                child: Text(
-                  "Detail",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.amber.shade700,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
 
           // Card 1
           _buildTaskCard(
@@ -84,8 +82,13 @@ class _ClassPageState extends State<ClassPage> {
             hasExpand: false,
             isActive: false,
             onTap: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => GroupDetailPage(groupName: 'tes',)));
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      GroupDetailPage(groupName: widget.className),
+                ),
+              );
             },
           ),
 
@@ -100,37 +103,19 @@ class _ClassPageState extends State<ClassPage> {
             hasExpand: true,
             isActive: true,
             onTap: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => GroupDetailPage(groupName: 'tes',)));
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      GroupDetailPage(groupName: widget.className),
+                ),
+              );
             },
           ),
         ],
       ),
 
-      bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.file_upload_outlined),
-            label: 'Join Group',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle_outline),
-            label: 'Create Group',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: _navy,
-        unselectedItemColor: Colors.grey[600],
-        onTap: _onItemTapped,
-        backgroundColor: Colors.white,
-        elevation: 10,
-        type: BottomNavigationBarType.fixed,
-      ),
+      // BottomNavigation removed for this page
     );
   }
 
@@ -162,7 +147,6 @@ class _ClassPageState extends State<ClassPage> {
             ),
           ],
         ),
-
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -194,14 +178,11 @@ class _ClassPageState extends State<ClassPage> {
               children: [
                 Row(
                   children: [
-                    if (hasExpand)
-                      _buildButton("Expand"),
-                    if (hasExpand)
-                      const SizedBox(width: 8),
+                    if (hasExpand) _buildButton("Expand"),
+                    if (hasExpand) const SizedBox(width: 8),
                     _buildButton("Done"),
                   ],
                 ),
-
                 Text(
                   date,
                   style: const TextStyle(

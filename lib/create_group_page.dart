@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dashboard_page.dart'; // Untuk navigasi kembali ke Home
+import 'dashboard_page.dart';
+import 'join_group_page.dart'; // tambahkan ini untuk navigasi ke Join
 
 class CreateGroupPage extends StatefulWidget {
   const CreateGroupPage({super.key});
@@ -26,11 +27,15 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         // Kembali ke Dashboard/Home
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const DashboardPage()),
-          (route) => false,
+          MaterialPageRoute(builder: (context) => DashboardPage()),
+              (route) => false,
         );
       } else if (index == 1) {
-        // TODO: Navigasi ke Join Group Page
+        // Ke Join Group Page
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => JoinGroupPage()),
+        );
       }
       // Index 2 adalah halaman ini sendiri
     });
@@ -86,7 +91,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 obscure: _obscurePassword,
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    _obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
                     color: Colors.black54,
                   ),
                   onPressed: () {
@@ -107,7 +114,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 obscure: _obscureConfirmPassword,
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    _obscureConfirmPassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
                     color: Colors.black54,
                   ),
                   onPressed: () {
@@ -133,8 +142,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     // Kembali ke dashboard setelah create
                     Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(builder: (context) => const DashboardPage()),
-                      (route) => false,
+                      MaterialPageRoute(builder: (context) => DashboardPage()),
+                          (route) => false,
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -160,31 +169,55 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
           ),
         ),
       ),
-      
-      // BOTTOM NAVIGATION BAR
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.file_upload_outlined),
-            label: 'Join Group',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle_outline),
-            activeIcon: Icon(Icons.add_circle), // Icon aktif berbeda jika mau
-            label: 'Create Group',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: _gold, // Item terpilih berwarna emas (atau bisa Navy jika ingin konsisten)
-        unselectedItemColor: Colors.white, // Icon tidak terpilih putih
-        onTap: _onItemTapped,
-        backgroundColor: _navy, // Background Navy sesuai gambar referensi (footer gelap)
-        type: BottomNavigationBarType.fixed,
+
+      // BOTTOM NAVIGATION BAR (disamakan dengan Dashboard & Join)
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: _navy,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 6,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          backgroundColor: _navy,
+          items: [
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: _selectedIndex == 1
+                      ? _gold.withOpacity(0.15)
+                      : Colors.transparent,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.file_upload_outlined,
+                  color: _selectedIndex == 1 ? _gold : Colors.white,
+                ),
+              ),
+              label: 'Join Group',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.add_circle_outline),
+              activeIcon: Icon(Icons.add_circle),
+              label: 'Create Group',
+            ),
+          ],
+          currentIndex: _selectedIndex,
+          selectedItemColor: _gold,
+          unselectedItemColor: Colors.white,
+          onTap: _onItemTapped,
+          type: BottomNavigationBarType.fixed,
+        ),
       ),
     );
   }
@@ -212,10 +245,11 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       obscureText: obscure,
       decoration: InputDecoration(
         filled: true,
-        fillColor: const Color(0xFFF5F5F5), // Warna background input
+        fillColor: const Color(0xFFF5F5F5),
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.grey),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: _inputBorder),
@@ -226,7 +260,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF1A2342), width: 1.5),
+          borderSide: BorderSide(color: _navy, width: 1.5),
         ),
         suffixIcon: suffixIcon,
       ),
