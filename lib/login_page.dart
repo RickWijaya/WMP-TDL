@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:finalproject/forgot_password_page.dart';
 import 'signup_page.dart';
 import 'dashboard_page.dart';
-import '../services/auth_service.dart';
+import 'services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -58,16 +58,24 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = false);
 
     if (error != null) {
+      // AuthService sudah mapping error ke "Password or account mismatch"
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error)),
       );
       return;
     }
 
-    // Login sukses → pergi ke Dashboard, hapus history
+    // Ambil nama user (displayName kalau ada, kalau nggak pakai prefix email)
+    final user = _authService.currentUser;
+    final displayName = user?.displayName ??
+        (user?.email != null ? user!.email!.split('@').first : 'User');
+
+    // Login sukses → ke Dashboard, hapus history (tidak bisa back ke login)
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const DashboardPage()),
+      MaterialPageRoute(
+        builder: (_) => DashboardPage(userName: displayName),
+      ),
           (route) => false,
     );
   }
@@ -82,7 +90,11 @@ class _LoginPageState extends State<LoginPage> {
           // BAGIAN ATAS (Welcome Text)
           Padding(
             padding: const EdgeInsets.only(
-                top: 80, left: 24, right: 24, bottom: 40),
+              top: 80,
+              left: 24,
+              right: 24,
+              bottom: 40,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -125,7 +137,9 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 40),
+                    horizontal: 24,
+                    vertical: 40,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -224,7 +238,8 @@ class _LoginPageState extends State<LoginPage> {
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white),
+                                Colors.white,
+                              ),
                             ),
                           )
                               : Text(
@@ -303,7 +318,7 @@ class _LoginPageState extends State<LoginPage> {
       keyboardType: keyboardType,
       decoration: InputDecoration(
         filled: true,
-        fillColor: const Color(0xFFF5F5F5),
+        fillColor: const Color(0xFFF5F5F5), // Background input abu muda
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.grey),
         contentPadding:

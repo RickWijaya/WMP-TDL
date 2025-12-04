@@ -3,13 +3,15 @@ import 'class_page.dart';
 import 'create_group_page.dart';
 import 'join_group_page.dart';
 import 'login_page.dart';
+import 'services/auth_service.dart';
 
+// --- Data Model Sederhana untuk Kartu Grup ---
 class Group {
   final String title;
   final String members;
   final String leader;
   final Color color;
-  final bool isLeader;
+  final bool isLeader; // Menentukan apakah opsi 'Edit' muncul
 
   Group({
     required this.title,
@@ -20,27 +22,57 @@ class Group {
   });
 }
 
+// ---------- DASHBOARD PAGE ----------
+
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+  final String userName;
+
+  const DashboardPage({
+    super.key,
+    this.userName = 'User',
+  });
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 0; // Untuk BottomNavigationBar
+
+  final AuthService _authService = AuthService();
+
+  // Warna utama
   final Color _navy = const Color(0xFF1A2342);
   final Color _gold = const Color(0xFFE0A938);
 
+  // Data contoh untuk daftar grup
   final List<Group> _groups = [
-    Group(title: 'AI 1', members: '2 Members', leader: 'Leader Name', color: Colors.blueAccent, isLeader: true),
-    Group(title: 'TDL', members: '1 Member', leader: 'Leader Name', color: Colors.purpleAccent, isLeader: true),
-    Group(title: '3DD', members: '1 Member', leader: 'Leader Name', color: Colors.pinkAccent),
+    Group(
+      title: 'AI 1',
+      members: '2 Members',
+      leader: 'Leader Name',
+      color: Colors.blueAccent,
+      isLeader: true,
+    ),
+    Group(
+      title: 'TDL',
+      members: '1 Member',
+      leader: 'Leader Name',
+      color: Colors.purpleAccent,
+      isLeader: true,
+    ),
+    Group(
+      title: '3DD',
+      members: '1 Member',
+      leader: 'Leader Name',
+      color: Colors.pinkAccent,
+    ),
   ];
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+
       if (index == 1) {
         Navigator.push(
           context,
@@ -55,34 +87,51 @@ class _DashboardPageState extends State<DashboardPage> {
     });
   }
 
+  Future<void> _handleLogout() async {
+    await _authService.logout();
+
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+          (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.grey[100], // Background abu-abu muda
       appBar: AppBar(
-        title: const Text(
-          'Hi {Name}',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
         backgroundColor: Colors.white,
         elevation: 1,
         automaticallyImplyLeading: false,
+        title: Text(
+          'Hi ${widget.userName}',
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.black),
             onSelected: (value) {
               if (value == 'logout') {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                      (route) => false,
-                );
+                _handleLogout();
               }
             },
-            itemBuilder: (context) => const [
-              PopupMenuItem<String>(
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
                 value: 'logout',
-                child: Text('Log out'),
+                child: ListTile(
+                  leading: Icon(Icons.logout, color: Colors.red),
+                  title: Text(
+                    'Logout',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
               ),
             ],
           ),
@@ -91,10 +140,22 @@ class _DashboardPageState extends State<DashboardPage> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          // Teks Sambutan di body (opsional)
+          Text(
+            'Hi ${widget.userName}',
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 20),
+
+          // Daftar Kartu Grup
           ..._groups.map((group) => _buildGroupCard(context, group)).toList(),
         ],
       ),
+
+      // BOTTOM NAVIGATION
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: _navy,
@@ -118,7 +179,9 @@ class _DashboardPageState extends State<DashboardPage> {
               icon: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: _selectedIndex == 1 ? _gold.withOpacity(0.15) : Colors.transparent,
+                  color: _selectedIndex == 1
+                      ? _gold.withOpacity(0.15)
+                      : Colors.transparent,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -143,6 +206,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  // WIDGET UNTUK KARTU GRUP (sekarang bisa diklik)
   Widget _buildGroupCard(BuildContext context, Group group) {
     return GestureDetector(
       onTap: () {
@@ -155,7 +219,9 @@ class _DashboardPageState extends State<DashboardPage> {
       },
       child: Card(
         margin: const EdgeInsets.only(bottom: 16.0),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
         color: group.color,
         elevation: 4,
         shadowColor: group.color.withOpacity(0.5),
@@ -176,32 +242,51 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ),
                   PopupMenuButton<String>(
-                    onSelected: (value) {},
-                    itemBuilder: (context) => [
-                      const PopupMenuItem<String>(
-                        value: 'leave',
-                        child: ListTile(
-                          leading: Icon(Icons.exit_to_app, color: Colors.red),
-                          title: Text('Leave', style: TextStyle(color: Colors.red)),
-                        ),
-                      ),
-                      if (group.isLeader)
+                    onSelected: (value) {
+                      // TODO: isi aksi leave/edit kalau sudah pakai Firestore
+                    },
+                    itemBuilder: (BuildContext context) {
+                      return [
                         const PopupMenuItem<String>(
-                          value: 'edit',
+                          value: 'leave',
                           child: ListTile(
-                            leading: Icon(Icons.edit_outlined),
-                            title: Text('Edit'),
+                            leading: Icon(Icons.exit_to_app, color: Colors.red),
+                            title: Text(
+                              'Leave',
+                              style: TextStyle(color: Colors.red),
+                            ),
                           ),
                         ),
-                    ],
+                        if (group.isLeader)
+                          const PopupMenuItem<String>(
+                            value: 'edit',
+                            child: ListTile(
+                              leading: Icon(Icons.edit_outlined),
+                              title: Text('Edit'),
+                            ),
+                          ),
+                      ];
+                    },
                     icon: const Icon(Icons.more_vert, color: Colors.white),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
-              Text(group.members, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+              Text(
+                group.members,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+              ),
               const SizedBox(height: 12),
-              Text(group.leader, style: const TextStyle(color: Colors.white, fontSize: 16)),
+              Text(
+                group.leader,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
             ],
           ),
         ),
