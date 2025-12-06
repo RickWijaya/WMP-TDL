@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dashboard_page.dart';
-import 'create_group_page.dart';
-import 'join_group_page.dart';
+import 'services/database_service.dart';
 
 class GroupDetailPage extends StatefulWidget {
   final String groupName;
-  final int memberCount;
+  final String groupId;
 
   const GroupDetailPage({
     super.key,
     required this.groupName,
-    this.memberCount = 2, // Default value
+    required this.groupId,
   });
 
   @override
@@ -18,34 +19,12 @@ class GroupDetailPage extends StatefulWidget {
 }
 
 class _GroupDetailPageState extends State<GroupDetailPage> {
-  int _selectedIndex = 0;
+  final DatabaseService _dbService = DatabaseService();
+  final String _currentUid = FirebaseAuth.instance.currentUser!.uid;
 
-  // Definisi Warna
+  // Colors
   final Color _navy = const Color(0xFF1A2342);
   final Color _background = const Color(0xFFF5F5F5);
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-      if (index == 0) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const DashboardPage()),
-              (route) => false,
-        );
-      } else if (index == 1) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const JoinGroupPage()),
-        );
-      } else if (index == 2) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const CreateGroupPage()),
-        );
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,138 +38,154 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // HEADER SECTION
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-              color: _background,
+      body: StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance.collection('groups').doc(widget.groupId).snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.hasData || !snapshot.data!.exists) {
+              return const Center(child: Text("Group not found"));
+            }
+
+            var groupData = snapshot.data!.data() as Map<String, dynamic>;
+            List<dynamic> members = groupData['members'] ?? [];
+            // Get the map of names. If it doesn't exist yet, use empty map.
+            Map<String, dynamic> memberNames = groupData['memberNames'] ?? {};
+
+            String leaderId = groupData['leaderId'] ?? '';
+            bool amILeader = leaderId == _currentUid;
+
+            return SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.groupName,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: _navy,
-                      fontFamily: 'Serif',
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Member : ${widget.memberCount}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // MEMBER LIST CARD
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    // Daftar Anggota
-                    _buildMemberItem('Name', isAdmin: true),
-                    const Divider(
-                      height: 1,
-                      thickness: 0.5,
-                      indent: 16,
-                      endIndent: 16,
-                    ),
-                    _buildMemberItem('Title'), // Contoh nama anggota lain
-                    const Divider(
-                      height: 1,
-                      thickness: 0.5,
-                      indent: 16,
-                      endIndent: 16,
-                    ),
-
-                    // Tombol Leave
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: TextButton(
-                        onPressed: () {
-                          _showLeaveDialog();
-                        },
-                        child: const Text(
-                          'Leave',
+                  // HEADER
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+                    color: _background,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          groupData['groupName'] ?? widget.groupName,
                           style: TextStyle(
-                            color: Colors.red,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: _navy,
+                            fontFamily: 'Serif',
                           ),
                         ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Members : ${members.length}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // MEMBER LIST
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: members.length,
+                            separatorBuilder: (context, index) => const Divider(
+                              height: 1,
+                              thickness: 0.5,
+                              indent: 16,
+                              endIndent: 16,
+                            ),
+                            itemBuilder: (context, index) {
+                              String memberId = members[index];
+                              // Look up name in the map. If not found, fallback to "Member"
+                              String name = memberNames[memberId] ?? "Member";
+
+                              // If it's me, append (Me)
+                              if (memberId == _currentUid) name += " (Me)";
+
+                              bool isMemberLeader = memberId == leaderId;
+
+                              return _buildMemberItem(
+                                name, // Pass the REAL name now
+                                isLeader: isMemberLeader,
+                                canKick: amILeader && !isMemberLeader,
+                                onKick: () => _showKickDialog(memberId),
+                              );
+                            },
+                          ),
+
+                          // Leave Button
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: TextButton(
+                              onPressed: () => _showLeaveDialog(),
+                              child: const Text(
+                                'Leave Group',
+                                style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
-            ),
-          ],
-        ),
+            );
+          }
       ),
-
-       );
+    );
   }
 
-  Widget _buildMemberItem(String name, {bool isAdmin = false}) {
+  Widget _buildMemberItem(String displayName, {bool isLeader = false, bool canKick = false, VoidCallback? onKick}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            name,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
+          Expanded(
+            child: Text(
+              displayName,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
             ),
           ),
-          // Admin label or Kick button
-          if (isAdmin)
+          if (isLeader)
             const Text(
               'Admin',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueAccent),
             )
-          else
+          else if (canKick)
             TextButton(
-              onPressed: () {
-                _showKickDialog(name);
-              },
-              child: const Text(
-                'Kick',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.red,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              onPressed: onKick,
+              child: const Text('Kick', style: TextStyle(fontSize: 14, color: Colors.red, fontWeight: FontWeight.w500)),
             ),
         ],
       ),
@@ -200,20 +195,20 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   void _showLeaveDialog() {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Leave Group'),
         content: Text('Are you sure you want to leave ${widget.groupName}?'),
         actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(dialogContext); // Tutup dialog
-              Navigator.pop(context); // Kembali ke halaman sebelumnya
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('You left the group')),
+            onPressed: () async {
+              Navigator.pop(context);
+              await _dbService.leaveGroup(widget.groupId);
+              if (!mounted) return;
+              Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DashboardPage()),
+                      (route) => false
               );
             },
             child: const Text('Leave', style: TextStyle(color: Colors.red)),
@@ -223,28 +218,22 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     );
   }
 
-  void _showKickDialog(String name) {
+  void _showKickDialog(String memberId) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Kick User'),
-        content: Text('Are you sure you want to kick $name?'),
+        content: const Text('Are you sure you want to kick this user?'),
         actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(dialogContext); // close dialog
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('User kicked')),
-              );
+            onPressed: () async {
+              Navigator.pop(context);
+              await _dbService.kickMember(widget.groupId, memberId);
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User kicked')));
             },
-            child: const Text(
-              'Kick',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('Kick', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

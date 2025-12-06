@@ -65,12 +65,21 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    // Ambil nama user (displayName kalau ada, kalau nggak pakai prefix email)
+    // Extract Name from Email
+    // Example: "john@gmail.com" -> becomes "john"
     final user = _authService.currentUser;
-    final displayName = user?.displayName ??
-        (user?.email != null ? user!.email!.split('@').first : 'User');
+    String displayName = "User";
 
-    // Login sukses → ke Dashboard, hapus history (tidak bisa back ke login)
+    if (user != null && user.email != null) {
+      displayName = user.email!.split('@')[0];
+
+      // Optional: Capitalize first letter (e.g., "john" -> "John")
+      if (displayName.isNotEmpty) {
+        displayName = displayName[0].toUpperCase() + displayName.substring(1);
+      }
+    }
+
+    // 3. Pass Name to Dashboard
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(

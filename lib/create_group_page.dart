@@ -1,16 +1,28 @@
 import 'package:flutter/material.dart';
 import 'dashboard_page.dart';
-import 'join_group_page.dart'; // tambahkan ini untuk navigasi ke Join
+import 'join_group_page.dart';
+import 'services/database_service.dart';
 
 class CreateGroupPage extends StatefulWidget {
-  const CreateGroupPage({super.key});
+
+  final String userName;
+  const CreateGroupPage({
+    super.key,
+    this.userName = 'User',
+  });
 
   @override
   State<CreateGroupPage> createState() => _CreateGroupPageState();
 }
 
 class _CreateGroupPageState extends State<CreateGroupPage> {
-  int _selectedIndex = 2; // Index 2 untuk 'Create Group'
+  // 1. Define Controllers
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descController = TextEditingController();
+  final TextEditingController _passController = TextEditingController();
+  final TextEditingController _confirmPassController = TextEditingController(); // Added for confirm password
+
+  int _selectedIndex = 2;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
@@ -20,6 +32,15 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   final Color _background = const Color(0xFFF5F5F5);
   final Color _inputBorder = const Color(0xFFE0E0E0);
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descController.dispose();
+    _passController.dispose();
+    _confirmPassController.dispose();
+    super.dispose();
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -27,14 +48,14 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         // Kembali ke Dashboard/Home
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => DashboardPage()),
+          MaterialPageRoute(builder: (context) => const DashboardPage()),
               (route) => false,
         );
       } else if (index == 1) {
         // Ke Join Group Page
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => JoinGroupPage()),
+          MaterialPageRoute(builder: (context) => const JoinGroupPage()),
         );
       }
       // Index 2 adalah halaman ini sendiri
@@ -48,7 +69,14 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       appBar: AppBar(
         backgroundColor: _navy,
         elevation: 0,
-        toolbarHeight: 0, // Menyembunyikan AppBar standar agar sesuai desain full screen
+        automaticallyImplyLeading: false,
+        title: Text(
+          'Hi ${widget.userName}',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -72,57 +100,57 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               // Form Group Name
               _buildLabel('Group Name'),
               const SizedBox(height: 8),
-              _buildTextField(hint: 'John'),
+              _buildTextField(
+                  hint: 'John',
+                  controller: _nameController
+              ),
 
               const SizedBox(height: 20),
 
-              // Form Description
+              // Description
               _buildLabel('Description'),
               const SizedBox(height: 8),
-              _buildTextField(hint: 'Lorem Ipsum'),
+              _buildTextField(
+                  hint: 'Lorem Ipsum',
+                  controller: _descController
+              ),
 
               const SizedBox(height: 20),
 
-              // Form Password
+              // Password
               _buildLabel('Password'),
               const SizedBox(height: 8),
               _buildTextField(
                 hint: '........',
+                controller: _passController,
                 obscure: _obscurePassword,
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscurePassword
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
+                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                     color: Colors.black54,
                   ),
                   onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
+                    setState(() => _obscurePassword = !_obscurePassword);
                   },
                 ),
               ),
 
               const SizedBox(height: 20),
 
-              // Form Confirm Password
+              // Confirm Password
               _buildLabel('Confirm Password'),
               const SizedBox(height: 8),
               _buildTextField(
                 hint: '........',
+                controller: _confirmPassController,
                 obscure: _obscureConfirmPassword,
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscureConfirmPassword
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
+                    _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                     color: Colors.black54,
                   ),
                   onPressed: () {
-                    setState(() {
-                      _obscureConfirmPassword = !_obscureConfirmPassword;
-                    });
+                    setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
                   },
                 ),
               ),
@@ -134,17 +162,48 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Aksi Create Group
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Group Created!')),
-                    );
-                    // Kembali ke dashboard setelah create
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => DashboardPage()),
-                          (route) => false,
-                    );
+                  onPressed: () async {
+                    // Debug print to see what is happening
+                    print("Name: ${_nameController.text}");
+                    print("Pass: ${_passController.text}");
+
+                    // Validation Logic
+                    if (_nameController.text.trim().isEmpty ||
+                        _passController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please fill all fields')),
+                      );
+                      return;
+                    }
+
+                    if (_passController.text != _confirmPassController.text) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Passwords do not match')),
+                      );
+                      return;
+                    }
+
+                    try {
+                      await DatabaseService().createGroup(
+                          _nameController.text.trim(),
+                          _descController.text.trim(),
+                          _passController.text.trim()
+                      );
+
+                      if (!mounted) return;
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Group Created!')),
+                      );
+
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const DashboardPage()),
+                            (route) => false,
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _navy,
@@ -238,10 +297,12 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   Widget _buildTextField({
     required String hint,
+    required TextEditingController controller,
     bool obscure = false,
     Widget? suffixIcon,
   }) {
     return TextField(
+      controller: controller,
       obscureText: obscure,
       decoration: InputDecoration(
         filled: true,

@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dashboard_page.dart';
 import 'create_group_page.dart';
+import 'services/database_service.dart';
 
 class JoinGroupPage extends StatefulWidget {
-  const JoinGroupPage({super.key});
+  final String userName;
+  const JoinGroupPage({
+    super.key,
+    this.userName = 'User',
+  });
 
   @override
   State<JoinGroupPage> createState() => _JoinGroupPageState();
@@ -13,10 +18,21 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
   int _selectedIndex = 1;
   bool _obscurePassword = true;
 
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _passController = TextEditingController();
+
   final Color _navy = const Color(0xFF1A2342);
   final Color _gold = const Color(0xFFE0A938);
   final Color _background = const Color(0xFFFFFFFF);
   final Color _inputBorder = const Color(0xFFE0E0E0);
+
+  // Clean up controllers when page is closed
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _passController.dispose();
+    super.dispose();
+  }
 
   void _onItemTapped(int index) {
     if (index == 0) {
@@ -40,11 +56,17 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
     return Scaffold(
       backgroundColor: _background,
 
-      // TOP NAVY BAR (as screenshot)
       appBar: AppBar(
         backgroundColor: _navy,
-        toolbarHeight: 60,
         elevation: 0,
+        automaticallyImplyLeading: false,
+        title: Text(
+          'Hi ${widget.userName}',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
 
       body: SingleChildScrollView(
@@ -54,7 +76,7 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
           children: [
             const SizedBox(height: 10),
 
-            /// TITLE (Centered, Serif)
+            /// TITLE
             Text(
               'Join Group',
               style: TextStyle(
@@ -70,7 +92,10 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
             /// GROUP NAME FIELD
             _label("Group Name"),
             const SizedBox(height: 8),
-            _textField(hint: "John"),
+            _textField(
+              hint: "Enter Group Name",
+              controller: _nameController, // Attached Controller
+            ),
 
             const SizedBox(height: 24),
 
@@ -79,6 +104,7 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
             const SizedBox(height: 8),
             _textField(
               hint: "........",
+              controller: _passController, // Attached Controller
               obscure: _obscurePassword,
               suffixIcon: IconButton(
                 icon: Icon(
@@ -93,20 +119,44 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
 
             const SizedBox(height: 60),
 
-            /// CREATE BUTTON
+            /// JOIN BUTTON
             SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Joined Group Successfully!')),
+                onPressed: () async {
+                  // Check if fields are empty
+                  if (_nameController.text.trim().isEmpty || _passController.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please fill in all fields')),
+                    );
+                    return;
+                  }
+
+                  // Call Database Service
+                  String? result = await DatabaseService().joinGroup(
+                    _nameController.text.trim(),
+                    _passController.text.trim(),
                   );
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => const DashboardPage()),
-                        (route) => false,
-                  );
+
+                  if (!mounted) return;
+
+                  if (result == null) {
+                    // Success (result is null means no error)
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Joined Group Successfully!')),
+                    );
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const DashboardPage()),
+                          (route) => false,
+                    );
+                  } else {
+                    // Error
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(result)),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _navy,
@@ -116,7 +166,7 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
                   elevation: 4,
                 ),
                 child: Text(
-                  'Create',
+                  'Join',
                   style: TextStyle(
                     color: _gold,
                     fontSize: 18,
@@ -196,10 +246,12 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
   // CUSTOM TEXTFIELD
   Widget _textField({
     required String hint,
+    required TextEditingController controller,
     bool obscure = false,
     Widget? suffixIcon,
   }) {
     return TextField(
+      controller: controller, // Connect controller here
       obscureText: obscure,
       decoration: InputDecoration(
         filled: true,

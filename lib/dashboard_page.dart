@@ -1,26 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'edit_group_page.dart';
 import 'class_page.dart';
 import 'create_group_page.dart';
 import 'join_group_page.dart';
 import 'login_page.dart';
 import 'services/auth_service.dart';
-
-// --- Data Model Sederhana untuk Kartu Grup ---
-class Group {
-  final String title;
-  final String members;
-  final String leader;
-  final Color color;
-  final bool isLeader; // Menentukan apakah opsi 'Edit' muncul
-
-  Group({
-    required this.title,
-    required this.members,
-    required this.leader,
-    required this.color,
-    this.isLeader = false,
-  });
-}
+import 'services/database_service.dart';
 
 // ---------- DASHBOARD PAGE ----------
 
@@ -40,33 +27,19 @@ class _DashboardPageState extends State<DashboardPage> {
   int _selectedIndex = 0; // Untuk BottomNavigationBar
 
   final AuthService _authService = AuthService();
+  final DatabaseService _dbService = DatabaseService(); // Added service
+  final String _uid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
   // Warna utama
   final Color _navy = const Color(0xFF1A2342);
   final Color _gold = const Color(0xFFE0A938);
 
-  // Data contoh untuk daftar grup
-  final List<Group> _groups = [
-    Group(
-      title: 'AI 1',
-      members: '2 Members',
-      leader: 'Leader Name',
-      color: Colors.blueAccent,
-      isLeader: true,
-    ),
-    Group(
-      title: 'TDL',
-      members: '1 Member',
-      leader: 'Leader Name',
-      color: Colors.purpleAccent,
-      isLeader: true,
-    ),
-    Group(
-      title: '3DD',
-      members: '1 Member',
-      leader: 'Leader Name',
-      color: Colors.pinkAccent,
-    ),
+  final List<Color> _cardColors = [
+    Colors.blueAccent,
+    Colors.purpleAccent,
+    Colors.pinkAccent,
+    Colors.orangeAccent,
+    Colors.teal,
   ];
 
   void _onItemTapped(int index) {
@@ -104,19 +77,19 @@ class _DashboardPageState extends State<DashboardPage> {
     return Scaffold(
       backgroundColor: Colors.grey[100], // Background abu-abu muda
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 1,
+        backgroundColor: _navy,
+        elevation: 0,
         automaticallyImplyLeading: false,
         title: Text(
           'Hi ${widget.userName}',
           style: const TextStyle(
-            color: Colors.black,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.black),
+            icon: const Icon(Icons.more_vert, color: Colors.white), // Changed from Black to White
             onSelected: (value) {
               if (value == 'logout') {
                 _handleLogout();
@@ -137,22 +110,64 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          // Teks Sambutan di body (opsional)
-          Text(
-            'Hi ${widget.userName}',
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 20),
 
-          // Daftar Kartu Grup
-          ..._groups.map((group) => _buildGroupCard(context, group)).toList(),
-        ],
+      body: StreamBuilder<QuerySnapshot>(
+          stream: _dbService.getUserGroups(),
+          builder: (context, snapshot) {
+            // Handling Loading State
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            // Prepare Data
+            var docs = snapshot.data?.docs ?? [];
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(16.0),
+              itemCount: docs.length + 1,
+              itemBuilder: (context, index) {
+
+                // Header Logic
+                if (index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 20.0),
+                    child: Text(
+                      'Hi ${widget.userName}',
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  );
+                }
+
+                // Card Logic
+                var doc = docs[index - 1];
+                var data = doc.data() as Map<String, dynamic>;
+
+                // Extract Data
+                String title = data['groupName'] ?? 'Unnamed';
+                String leaderName = data['leaderName'] ?? 'Unknown';
+                String leaderId = data['leaderId'] ?? '';
+                List members = data['members'] ?? [];
+                String memberCount = '${members.length} Member${members.length > 1 ? 's' : ''}';
+
+                // Determine logic
+                bool isLeader = leaderId == _uid;
+                Color cardColor = _cardColors[(index - 1) % _cardColors.length]; // Cycle colors
+
+                return _buildGroupCard(
+                    context,
+                    title,
+                    memberCount,
+                    leaderName,
+                    cardColor,
+                    isLeader,
+                    doc.id
+                );
+              },
+            );
+          }
       ),
 
       // BOTTOM NAVIGATION
@@ -206,14 +221,23 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  // WIDGET UNTUK KARTU GRUP (sekarang bisa diklik)
-  Widget _buildGroupCard(BuildContext context, Group group) {
+  // WIDGET UNTUK KARTU GRUP
+  Widget _buildGroupCard(
+      BuildContext context,
+      String title,
+      String members,
+      String leader,
+      Color color,
+      bool isLeader,
+      String groupId // Added groupId for navigation
+      ) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ClassPage(className: group.title),
+            // Updated to pass groupId to ClassPage
+            builder: (context) => ClassPage(className: title, groupId: groupId),
           ),
         );
       },
@@ -222,9 +246,9 @@ class _DashboardPageState extends State<DashboardPage> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        color: group.color,
+        color: color,
         elevation: 4,
-        shadowColor: group.color.withOpacity(0.5),
+        shadowColor: color.withOpacity(0.5),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -234,7 +258,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    group.title,
+                    title,
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -242,8 +266,38 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ),
                   PopupMenuButton<String>(
-                    onSelected: (value) {
-                      // TODO: isi aksi leave/edit kalau sudah pakai Firestore
+                    onSelected: (value) async {
+                      if (value == 'leave') {
+                        // Show confirmation dialog
+                        bool confirm = await showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Leave Group'),
+                            content: Text('Are you sure you want to leave $title?'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Leave', style: TextStyle(color: Colors.red))),
+                            ],
+                          ),
+                        ) ?? false;
+
+                        if (confirm) {
+                          await _dbService.leaveGroup(groupId);
+                          // UI updates automatically via StreamBuilder
+                        }
+                      }
+                      else if (value == 'edit') {
+                        // Navigate to Edit Page
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditGroupPage(
+                                groupId: groupId,
+                                groupName: title
+                            ),
+                          ),
+                        );
+                      }
                     },
                     itemBuilder: (BuildContext context) {
                       return [
@@ -257,7 +311,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                           ),
                         ),
-                        if (group.isLeader)
+                        if (isLeader)
                           const PopupMenuItem<String>(
                             value: 'edit',
                             child: ListTile(
@@ -273,7 +327,7 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
               const SizedBox(height: 4),
               Text(
-                group.members,
+                members,
                 style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 14,
@@ -281,7 +335,7 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
               const SizedBox(height: 12),
               Text(
-                group.leader,
+                leader,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
