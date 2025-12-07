@@ -25,6 +25,32 @@ class _ClassPageState extends State<ClassPage> {
   final Color _navy = const Color(0xFF1A2342);
   final Color _background = const Color(0xFFF5F5F5);
 
+  bool _isLeader = false; // 🔥 will be set based on group leaderId
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLeaderStatus();
+  }
+
+  Future<void> _loadLeaderStatus() async {
+    try {
+      final doc = await _dbService.getGroupDetails(widget.groupId);
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>? ?? {};
+        final String leaderId = data['leaderId'] as String? ?? '';
+        if (mounted) {
+          setState(() {
+            _isLeader = leaderId == _uid;
+          });
+        }
+      }
+    } catch (e) {
+      // optional: log error
+      print('Error loading leader status: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -114,6 +140,7 @@ class _ClassPageState extends State<ClassPage> {
       description: description,
       date: date,
       isCompleted: isCompleted,
+      isLeader: _isLeader,                 // 🔥 pass leader flag
       onCheckboxChanged: (bool value) {
         if (value && !isCompleted) {
           // going from UN-done → done
@@ -123,6 +150,9 @@ class _ClassPageState extends State<ClassPage> {
           _showUndoConfirmation(taskId);
         }
       },
+      onDelete: _isLeader
+          ? () => _showDeleteConfirmation(taskId, title)
+          : null,                           // only leader can delete
     );
   }
 
@@ -203,7 +233,49 @@ class _ClassPageState extends State<ClassPage> {
     );
   }
 
-  // --- ADD TASK POPUP (unchanged) ---
+  // --- CONFIRMATION POPUP: DELETE TASK (ADMIN ONLY) ---
+  void _showDeleteConfirmation(String taskId, String title) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Task"),
+        content: Text(
+          'Are you sure you want to permanently delete the task:\n\n"$title"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            onPressed: () async {
+              Navigator.pop(context);
+              await _dbService.deleteTask(widget.groupId, taskId);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Task deleted."),
+                  ),
+                );
+              }
+            },
+            child: const Text(
+              "Delete",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- ADD TASK POPUP ---
   void _showAddTaskDialog() {
     final titleController = TextEditingController();
     final descController = TextEditingController();
@@ -348,14 +420,18 @@ class _TaskCardItem extends StatefulWidget {
   final String description;
   final String date;
   final bool isCompleted;
+  final bool isLeader;
   final ValueChanged<bool> onCheckboxChanged;
+  final VoidCallback? onDelete;
 
   const _TaskCardItem({
     required this.title,
     required this.description,
     required this.date,
     required this.isCompleted,
+    required this.isLeader,
     required this.onCheckboxChanged,
+    this.onDelete,
   });
 
   @override
@@ -455,12 +531,30 @@ class _TaskCardItemState extends State<_TaskCardItem> {
                   ),
                 ],
               ),
-              Text(
-                widget.date,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
+
+              // Right side: date + delete (if leader)
+              Row(
+                children: [
+                  Text(
+                    widget.date,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  if (widget.isLeader && widget.onDelete != null) ...[
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                      onPressed: widget.onDelete,
+                      tooltip: 'Delete Task',
+                    ),
+                  ],
+                ],
               ),
             ],
           ),

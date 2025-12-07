@@ -158,6 +158,15 @@ class DatabaseService {
 
     await _db.collection('groups').doc(groupId).update(data);
   }
+  // Delete Task
+  Future<void> deleteTask(String groupId, String taskId) async {
+    await _db
+        .collection('groups')
+        .doc(groupId)
+        .collection('tasks')
+        .doc(taskId)
+        .delete();
+  }
 
   // Leave Group
   Future<void> leaveGroup(String groupId) async {
