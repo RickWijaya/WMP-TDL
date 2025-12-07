@@ -25,32 +25,6 @@ class _ClassPageState extends State<ClassPage> {
   final Color _navy = const Color(0xFF1A2342);
   final Color _background = const Color(0xFFF5F5F5);
 
-  bool _isLeader = false; // 🔥 will be set based on group leaderId
-
-  @override
-  void initState() {
-    super.initState();
-    _loadLeaderStatus();
-  }
-
-  Future<void> _loadLeaderStatus() async {
-    try {
-      final doc = await _dbService.getGroupDetails(widget.groupId);
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>? ?? {};
-        final String leaderId = data['leaderId'] as String? ?? '';
-        if (mounted) {
-          setState(() {
-            _isLeader = leaderId == _uid;
-          });
-        }
-      }
-    } catch (e) {
-      // optional: log error
-      print('Error loading leader status: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -104,15 +78,16 @@ class _ClassPageState extends State<ClassPage> {
             itemCount: tasks.length,
             itemBuilder: (context, index) {
               var task = tasks[index];
-              List completedBy = task['completedBy'] ?? [];
-              bool isCompletedByMe = completedBy.contains(_uid);
+
+              // 🔥 GLOBAL completion flag – everyone sees the same
+              bool isCompleted = (task.data() as Map<String, dynamic>)['isCompleted'] ?? false;
 
               return _buildTaskCard(
                 taskId: task.id,
                 title: task['title'],
                 description: task['description'],
                 date: task['dueDate'],
-                isCompleted: isCompletedByMe,
+                isCompleted: isCompleted,
               );
             },
           );
@@ -140,19 +115,15 @@ class _ClassPageState extends State<ClassPage> {
       description: description,
       date: date,
       isCompleted: isCompleted,
-      isLeader: _isLeader,                 // 🔥 pass leader flag
       onCheckboxChanged: (bool value) {
         if (value && !isCompleted) {
-          // going from UN-done → done
+          // going from UN-done → done (for everyone)
           _showDoneConfirmation(taskId);
         } else if (!value && isCompleted) {
-          // going from done → UN-done
+          // going from done → UN-done (for everyone)
           _showUndoConfirmation(taskId);
         }
       },
-      onDelete: _isLeader
-          ? () => _showDeleteConfirmation(taskId, title)
-          : null,                           // only leader can delete
     );
   }
 
@@ -164,7 +135,7 @@ class _ClassPageState extends State<ClassPage> {
         title: const Text("Complete Task"),
         content: const Text(
           "Are you sure you are done with this task?\n\n"
-              "It will be marked as completed, but still visible until the admin removes it.",
+              "It will be marked as completed for everyone, but still visible until the admin removes it.",
         ),
         actions: [
           TextButton(
@@ -202,7 +173,7 @@ class _ClassPageState extends State<ClassPage> {
       builder: (context) => AlertDialog(
         title: const Text("Mark as Not Done"),
         content: const Text(
-          "Do you want to mark this task as not finished yet?",
+          "Do you want to mark this task as not finished yet for everyone?",
         ),
         actions: [
           TextButton(
@@ -225,48 +196,6 @@ class _ClassPageState extends State<ClassPage> {
             },
             child: const Text(
               "Yes",
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- CONFIRMATION POPUP: DELETE TASK (ADMIN ONLY) ---
-  void _showDeleteConfirmation(String taskId, String title) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Delete Task"),
-        content: Text(
-          'Are you sure you want to permanently delete the task:\n\n"$title"?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              "Cancel",
-              style: TextStyle(color: Colors.grey),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            onPressed: () async {
-              Navigator.pop(context);
-              await _dbService.deleteTask(widget.groupId, taskId);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Task deleted."),
-                  ),
-                );
-              }
-            },
-            child: const Text(
-              "Delete",
               style: TextStyle(color: Colors.white),
             ),
           ),
@@ -420,18 +349,14 @@ class _TaskCardItem extends StatefulWidget {
   final String description;
   final String date;
   final bool isCompleted;
-  final bool isLeader;
   final ValueChanged<bool> onCheckboxChanged;
-  final VoidCallback? onDelete;
 
   const _TaskCardItem({
     required this.title,
     required this.description,
     required this.date,
     required this.isCompleted,
-    required this.isLeader,
     required this.onCheckboxChanged,
-    this.onDelete,
   });
 
   @override
@@ -531,30 +456,12 @@ class _TaskCardItemState extends State<_TaskCardItem> {
                   ),
                 ],
               ),
-
-              // Right side: date + delete (if leader)
-              Row(
-                children: [
-                  Text(
-                    widget.date,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  if (widget.isLeader && widget.onDelete != null) ...[
-                    const SizedBox(width: 4),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        color: Colors.red,
-                        size: 20,
-                      ),
-                      onPressed: widget.onDelete,
-                      tooltip: 'Delete Task',
-                    ),
-                  ],
-                ],
+              Text(
+                widget.date,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
               ),
             ],
           ),

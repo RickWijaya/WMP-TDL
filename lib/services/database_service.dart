@@ -98,17 +98,17 @@ class DatabaseService {
   }
 
   // Add Task
-  Future<void> addTask(
-      String groupId, String title, String desc, String date) async {
+  Future<void> addTask(String groupId, String title, String desc, String date) async {
     await _db.collection('groups').doc(groupId).collection('tasks').add({
       'title': title,
       'description': desc,
       'dueDate': date,
       'createdBy': uid,
       'createdAt': FieldValue.serverTimestamp(),
-      'completedBy': [],
+      'isCompleted': false,
     });
   }
+
 
   // Mark Task as done
   Future<void> markTaskDone(String groupId, String taskId) async {
@@ -118,9 +118,10 @@ class DatabaseService {
         .collection('tasks')
         .doc(taskId)
         .update({
-      'completedBy': FieldValue.arrayUnion([uid]),
+      'isCompleted': true,
     });
   }
+
 
   // Mark Task as UN-done
   Future<void> unmarkTaskDone(String groupId, String taskId) async {
@@ -130,9 +131,10 @@ class DatabaseService {
         .collection('tasks')
         .doc(taskId)
         .update({
-      'completedBy': FieldValue.arrayRemove([uid]),
+      'isCompleted': false,
     });
   }
+
 
   // Get Group Details for Edit Page
   Future<DocumentSnapshot> getGroupDetails(String groupId) async {
