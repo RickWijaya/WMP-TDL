@@ -11,7 +11,7 @@ class ClassPage extends StatefulWidget {
   const ClassPage({
     super.key,
     required this.className,
-    required this.groupId
+    required this.groupId,
   });
 
   @override
@@ -34,7 +34,10 @@ class _ClassPageState extends State<ClassPage> {
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           widget.className,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         actions: [
           TextButton(
@@ -42,11 +45,17 @@ class _ClassPageState extends State<ClassPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => GroupDetailPage(groupName: widget.className, groupId: widget.groupId,),
+                  builder: (_) => GroupDetailPage(
+                    groupName: widget.className,
+                    groupId: widget.groupId,
+                  ),
                 ),
               );
             },
-            child: const Text('Detail', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Detail',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -62,26 +71,22 @@ class _ClassPageState extends State<ClassPage> {
             return const Center(child: Text("No tasks yet. Create one!"));
           }
 
-          // Filter out tasks that THIS user has already completed
-          var tasks = snapshot.data!.docs.where((doc) {
-            List completedBy = doc['completedBy'] ?? [];
-            return !completedBy.contains(_uid);
-          }).toList();
-
-          if (tasks.isEmpty) {
-            return const Center(child: Text("All caught up! Great job!"));
-          }
+          var tasks = snapshot.data!.docs;
 
           return ListView.builder(
             padding: const EdgeInsets.all(24.0),
             itemCount: tasks.length,
             itemBuilder: (context, index) {
               var task = tasks[index];
+              List completedBy = task['completedBy'] ?? [];
+              bool isCompletedByMe = completedBy.contains(_uid);
+
               return _buildTaskCard(
                 taskId: task.id,
                 title: task['title'],
                 description: task['description'],
                 date: task['dueDate'],
+                isCompleted: isCompletedByMe,
               );
             },
           );
@@ -102,46 +107,103 @@ class _ClassPageState extends State<ClassPage> {
     required String title,
     required String description,
     required String date,
+    required bool isCompleted,
   }) {
     return _TaskCardItem(
       title: title,
       description: description,
       date: date,
-      onDone: () => _showDoneConfirmation(taskId),
+      isCompleted: isCompleted,
+      onCheckboxChanged: (bool value) {
+        if (value && !isCompleted) {
+          // going from UN-done → done
+          _showDoneConfirmation(taskId);
+        } else if (!value && isCompleted) {
+          // going from done → UN-done
+          _showUndoConfirmation(taskId);
+        }
+      },
     );
   }
 
-  // --- CONFIRMATION POPUP ---
+  // --- CONFIRMATION POPUP: mark as DONE ---
   void _showDoneConfirmation(String taskId) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Complete Task"),
-        content: const Text("Are you sure you are done with this task? It will be removed from your list."),
+        content: const Text(
+          "Are you sure you are done with this task?\n\n"
+              "It will be marked as completed, but still visible until the admin removes it.",
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context), // Cancel
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: Colors.grey),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: _navy),
             onPressed: () async {
-              Navigator.pop(context); // Close dialog
-              await _dbService.markTaskDone(widget.groupId, taskId); // Hide task
+              Navigator.pop(context);
+              await _dbService.markTaskDone(widget.groupId, taskId);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Task Completed!")),
+                  const SnackBar(content: Text("Task marked as completed!")),
                 );
               }
             },
-            child: const Text("Yes, Done", style: TextStyle(color: Colors.white)),
+            child: const Text(
+              "Yes, I'm Done",
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
     );
   }
 
-  // --- ADD TASK POPUP ---
+  // --- CONFIRMATION POPUP: mark as UN-DONE ---
+  void _showUndoConfirmation(String taskId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Mark as Not Done"),
+        content: const Text(
+          "Do you want to mark this task as not finished yet?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: _navy),
+            onPressed: () async {
+              Navigator.pop(context);
+              await _dbService.unmarkTaskDone(widget.groupId, taskId);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Task marked as not done.")),
+                );
+              }
+            },
+            child: const Text(
+              "Yes",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- ADD TASK POPUP (unchanged) ---
   void _showAddTaskDialog() {
     final titleController = TextEditingController();
     final descController = TextEditingController();
@@ -156,7 +218,6 @@ class _ClassPageState extends State<ClassPage> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         content: SingleChildScrollView(
-          // Prevents overflow when keyboard appears
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -164,26 +225,28 @@ class _ClassPageState extends State<ClassPage> {
                 controller: titleController,
                 decoration: InputDecoration(
                   labelText: "Title",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   prefixIcon: const Icon(Icons.title),
                   filled: true,
                   fillColor: Colors.grey[50],
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Desc field
               TextField(
                 controller: descController,
-                maxLines: 5, // Allow up to 5 lines
-                minLines: 3, // Start with height of 3 lines
+                maxLines: 5,
+                minLines: 3,
                 keyboardType: TextInputType.multiline,
                 decoration: InputDecoration(
                   labelText: "Description",
-                  alignLabelWithHint: true, // Keeps label at top
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  alignLabelWithHint: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   prefixIcon: const Padding(
-                    padding: EdgeInsets.only(bottom: 40), // Align icon to top
+                    padding: EdgeInsets.only(bottom: 40),
                     child: Icon(Icons.description),
                   ),
                   filled: true,
@@ -191,14 +254,14 @@ class _ClassPageState extends State<ClassPage> {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Date picker
               TextField(
                 controller: dateController,
-                readOnly: true, // Prevent manual typing
+                readOnly: true,
                 decoration: InputDecoration(
                   labelText: "Due Date",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   prefixIcon: const Icon(Icons.calendar_today),
                   filled: true,
                   fillColor: Colors.grey[50],
@@ -213,9 +276,9 @@ class _ClassPageState extends State<ClassPage> {
                       return Theme(
                         data: Theme.of(context).copyWith(
                           colorScheme: ColorScheme.light(
-                            primary: _navy, // Header background color
-                            onPrimary: Colors.white, // Header text color
-                            onSurface: _navy, // Body text color
+                            primary: _navy,
+                            onPrimary: Colors.white,
+                            onSurface: _navy,
                           ),
                         ),
                         child: child!,
@@ -224,7 +287,6 @@ class _ClassPageState extends State<ClassPage> {
                   );
 
                   if (pickedDate != null) {
-                    // Manual formatting to DD/MM/YYYY string
                     String formattedDate =
                         "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
                     dateController.text = formattedDate;
@@ -237,16 +299,23 @@ class _ClassPageState extends State<ClassPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: Colors.grey),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: _navy,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
             onPressed: () {
-              if (titleController.text.isNotEmpty && dateController.text.isNotEmpty) {
+              if (titleController.text.isNotEmpty &&
+                  dateController.text.isNotEmpty) {
                 _dbService.addTask(
                   widget.groupId,
                   titleController.text.trim(),
@@ -255,13 +324,17 @@ class _ClassPageState extends State<ClassPage> {
                 );
                 Navigator.pop(context);
               } else {
-                // Show simple error if fields are empty
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Please enter a Title and Date")),
+                  const SnackBar(
+                    content: Text("Please enter a Title and Date"),
+                  ),
                 );
               }
             },
-            child: const Text("Create", style: TextStyle(color: Colors.white, fontSize: 16)),
+            child: const Text(
+              "Create",
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
           )
         ],
       ),
@@ -269,18 +342,20 @@ class _ClassPageState extends State<ClassPage> {
   }
 }
 
-// Helper Widget to handle Expand/Collapse State locally
+// --- TASK CARD WIDGET ---
 class _TaskCardItem extends StatefulWidget {
   final String title;
   final String description;
   final String date;
-  final VoidCallback onDone;
+  final bool isCompleted;
+  final ValueChanged<bool> onCheckboxChanged;
 
   const _TaskCardItem({
     required this.title,
     required this.description,
     required this.date,
-    required this.onDone
+    required this.isCompleted,
+    required this.onCheckboxChanged,
   });
 
   @override
@@ -292,25 +367,46 @@ class _TaskCardItemState extends State<_TaskCardItem> {
 
   @override
   Widget build(BuildContext context) {
+    final bool completed = widget.isCompleted;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: completed ? Colors.green[100] : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
         ],
+        border: completed
+            ? Border.all(color: Colors.green.shade400, width: 1.5)
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(widget.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          Text(
+            widget.title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: completed ? Colors.green.shade900 : Colors.black,
+            ),
+          ),
           const SizedBox(height: 8),
 
-          // Description (Show only if expanded)
           if (_isExpanded) ...[
-            Text(widget.description, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+            Text(
+              widget.description,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+              ),
+            ),
             const SizedBox(height: 16),
           ],
 
@@ -319,37 +415,55 @@ class _TaskCardItemState extends State<_TaskCardItem> {
             children: [
               Row(
                 children: [
-                  // Expand Button
+                  // Expand button
                   GestureDetector(
-                    onTap: () => setState(() => _isExpanded = !_isExpanded),
+                    onTap: () =>
+                        setState(() => _isExpanded = !_isExpanded),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFE0E0E0),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(_isExpanded ? "Collapse" : "Expand", style: const TextStyle(fontSize: 12)),
+                      child: Text(
+                        _isExpanded ? "Collapse" : "Expand",
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
 
-                  // Done Button
-                  GestureDetector(
-                    onTap: widget.onDone,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1A2342), // Navy for emphasis
-                        borderRadius: BorderRadius.circular(8),
+                  // Checkbox Done / Undone
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: completed,
+                        onChanged: (val) {
+                          if (val == null) return;
+                          widget.onCheckboxChanged(val);
+                        },
+                        activeColor: const Color(0xFF1A2342),
                       ),
-                      child: const Text("Done", style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
-                    ),
+                      const Text(
+                        "Done",
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              Text(widget.date, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(
+                widget.date,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+              ),
             ],
-          )
+          ),
         ],
       ),
     );

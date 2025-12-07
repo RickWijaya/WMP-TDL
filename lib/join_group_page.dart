@@ -18,7 +18,7 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
   int _selectedIndex = 1;
   bool _obscurePassword = true;
 
-  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _groupIdController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
 
   final Color _navy = const Color(0xFF1A2342);
@@ -26,10 +26,9 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
   final Color _background = const Color(0xFFFFFFFF);
   final Color _inputBorder = const Color(0xFFE0E0E0);
 
-  // Clean up controllers when page is closed
   @override
   void dispose() {
-    _nameController.dispose();
+    _groupIdController.dispose();
     _passController.dispose();
     super.dispose();
   }
@@ -55,7 +54,6 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _background,
-
       appBar: AppBar(
         backgroundColor: _navy,
         elevation: 0,
@@ -68,7 +66,6 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
           ),
         ),
       ),
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
@@ -76,7 +73,6 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
           children: [
             const SizedBox(height: 10),
 
-            /// TITLE
             Text(
               'Join Group',
               style: TextStyle(
@@ -89,26 +85,28 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
 
             const SizedBox(height: 40),
 
-            /// GROUP NAME FIELD
-            _label("Group Name"),
+            // GROUP ID FIELD
+            _label("Group ID"),
             const SizedBox(height: 8),
             _textField(
-              hint: "Enter Group Name",
-              controller: _nameController, // Attached Controller
+              hint: "Enter Group ID",
+              controller: _groupIdController,
             ),
 
             const SizedBox(height: 24),
 
-            /// PASSWORD FIELD
+            // PASSWORD FIELD
             _label("Password"),
             const SizedBox(height: 8),
             _textField(
               hint: "........",
-              controller: _passController, // Attached Controller
+              controller: _passController,
               obscure: _obscurePassword,
               suffixIcon: IconButton(
                 icon: Icon(
-                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  _obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   color: Colors.black54,
                 ),
                 onPressed: () {
@@ -119,40 +117,40 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
 
             const SizedBox(height: 60),
 
-            /// JOIN BUTTON
+            // JOIN BUTTON
             SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
                 onPressed: () async {
-                  // Check if fields are empty
-                  if (_nameController.text.trim().isEmpty || _passController.text.trim().isEmpty) {
+                  if (_groupIdController.text.trim().isEmpty ||
+                      _passController.text.trim().isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please fill in all fields')),
+                      const SnackBar(
+                          content: Text('Please fill in all fields')),
                     );
                     return;
                   }
 
-                  // Call Database Service
                   String? result = await DatabaseService().joinGroup(
-                    _nameController.text.trim(),
+                    _groupIdController.text.trim(), // now groupId
                     _passController.text.trim(),
                   );
 
                   if (!mounted) return;
 
                   if (result == null) {
-                    // Success (result is null means no error)
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Joined Group Successfully!')),
+                      const SnackBar(
+                          content: Text('Joined Group Successfully!')),
                     );
                     Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(builder: (context) => const DashboardPage()),
+                      MaterialPageRoute(
+                          builder: (context) => const DashboardPage()),
                           (route) => false,
                     );
                   } else {
-                    // Error
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(result)),
                     );
@@ -181,7 +179,7 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
         ),
       ),
 
-      // BOTTOM NAVIGATION
+      // Bottom Navigation
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: _navy,
@@ -205,7 +203,9 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
               icon: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: _selectedIndex == 1 ? _gold.withOpacity(0.15) : Colors.transparent,
+                  color: _selectedIndex == 1
+                      ? _gold.withOpacity(0.15)
+                      : Colors.transparent,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -251,14 +251,15 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
     Widget? suffixIcon,
   }) {
     return TextField(
-      controller: controller, // Connect controller here
+      controller: controller,
       obscureText: obscure,
       decoration: InputDecoration(
         filled: true,
         fillColor: const Color(0xFFFDFDFD),
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.grey),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: _inputBorder),

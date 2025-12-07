@@ -22,7 +22,6 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
   final DatabaseService _dbService = DatabaseService();
   final String _currentUid = FirebaseAuth.instance.currentUser!.uid;
 
-  // Colors
   final Color _navy = const Color(0xFF1A2342);
   final Color _background = const Color(0xFFF5F5F5);
 
@@ -50,7 +49,6 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
 
             var groupData = snapshot.data!.data() as Map<String, dynamic>;
             List<dynamic> members = groupData['members'] ?? [];
-            // Get the map of names. If it doesn't exist yet, use empty map.
             Map<String, dynamic> memberNames = groupData['memberNames'] ?? {};
 
             String leaderId = groupData['leaderId'] ?? '';
@@ -60,7 +58,6 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // HEADER
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
@@ -120,16 +117,13 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                             ),
                             itemBuilder: (context, index) {
                               String memberId = members[index];
-                              // Look up name in the map. If not found, fallback to "Member"
                               String name = memberNames[memberId] ?? "Member";
-
-                              // If it's me, append (Me)
                               if (memberId == _currentUid) name += " (Me)";
 
                               bool isMemberLeader = memberId == leaderId;
 
                               return _buildMemberItem(
-                                name, // Pass the REAL name now
+                                name,
                                 isLeader: isMemberLeader,
                                 canKick: amILeader && !isMemberLeader,
                                 onKick: () => _showKickDialog(memberId),
@@ -137,7 +131,6 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                             },
                           ),
 
-                          // Leave Button
                           Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: TextButton(

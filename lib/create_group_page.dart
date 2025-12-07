@@ -4,7 +4,6 @@ import 'join_group_page.dart';
 import 'services/database_service.dart';
 
 class CreateGroupPage extends StatefulWidget {
-
   final String userName;
   const CreateGroupPage({
     super.key,
@@ -16,17 +15,64 @@ class CreateGroupPage extends StatefulWidget {
 }
 
 class _CreateGroupPageState extends State<CreateGroupPage> {
-  // 1. Define Controllers
+  // Controllers
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
-  final TextEditingController _confirmPassController = TextEditingController(); // Added for confirm password
+  final TextEditingController _confirmPassController =
+  TextEditingController();
 
   int _selectedIndex = 2;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
-  // Definisi Warna
+  // Theme list (8 themes)
+  final List<Map<String, dynamic>> _themes = [
+    {
+      'name': 'Navy',
+      'color': const Color(0xFF1A2342),
+      'hex': '0xFF1A2342',
+    },
+    {
+      'name': 'Gold',
+      'color': const Color(0xFFE0A938),
+      'hex': '0xFFE0A938',
+    },
+    {
+      'name': 'Emerald',
+      'color': const Color(0xFF16A34A),
+      'hex': '0xFF16A34A',
+    },
+    {
+      'name': 'Indigo',
+      'color': const Color(0xFF4F46E5),
+      'hex': '0xFF4F46E5',
+    },
+    {
+      'name': 'Crimson',
+      'color': const Color(0xFFB91C1C),
+      'hex': '0xFFB91C1C',
+    },
+    {
+      'name': 'Teal',
+      'color': const Color(0xFF0F766E),
+      'hex': '0xFF0F766E',
+    },
+    {
+      'name': 'Orange',
+      'color': const Color(0xFFF97316),
+      'hex': '0xFFF97316',
+    },
+    {
+      'name': 'Slate',
+      'color': const Color(0xFF1E293B),
+      'hex': '0xFF1E293B',
+    },
+  ];
+
+  int _selectedThemeIndex = 0;
+
+  // Colors
   final Color _navy = const Color(0xFF1A2342);
   final Color _gold = const Color(0xFFE0A938);
   final Color _background = const Color(0xFFF5F5F5);
@@ -45,20 +91,18 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     setState(() {
       _selectedIndex = index;
       if (index == 0) {
-        // Kembali ke Dashboard/Home
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const DashboardPage()),
               (route) => false,
         );
       } else if (index == 1) {
-        // Ke Join Group Page
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const JoinGroupPage()),
         );
       }
-      // Index 2 adalah halaman ini sendiri
+      // index 2 is this page
     });
   }
 
@@ -85,7 +129,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 20),
-              // Judul Halaman
               Text(
                 'Create Group',
                 style: TextStyle(
@@ -97,12 +140,12 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               ),
               const SizedBox(height: 40),
 
-              // Form Group Name
+              // Group Name
               _buildLabel('Group Name'),
               const SizedBox(height: 8),
               _buildTextField(
-                  hint: 'John',
-                  controller: _nameController
+                hint: 'Project Alpha',
+                controller: _nameController,
               ),
 
               const SizedBox(height: 20),
@@ -111,9 +154,16 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               _buildLabel('Description'),
               const SizedBox(height: 8),
               _buildTextField(
-                  hint: 'Lorem Ipsum',
-                  controller: _descController
+                hint: 'Short description...',
+                controller: _descController,
               ),
+
+              const SizedBox(height: 20),
+
+              // Group Theme
+              _buildLabel('Group Theme'),
+              const SizedBox(height: 8),
+              _buildThemeDropdown(),
 
               const SizedBox(height: 20),
 
@@ -126,7 +176,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 obscure: _obscurePassword,
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    _obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
                     color: Colors.black54,
                   ),
                   onPressed: () {
@@ -146,11 +198,14 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 obscure: _obscureConfirmPassword,
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    _obscureConfirmPassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
                     color: Colors.black54,
                   ),
                   onPressed: () {
-                    setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+                    setState(
+                            () => _obscureConfirmPassword = !_obscureConfirmPassword);
                   },
                 ),
               ),
@@ -163,15 +218,12 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () async {
-                    // Debug print to see what is happening
-                    print("Name: ${_nameController.text}");
-                    print("Pass: ${_passController.text}");
-
-                    // Validation Logic
                     if (_nameController.text.trim().isEmpty ||
-                        _passController.text.trim().isEmpty) {
+                        _passController.text.trim().isEmpty ||
+                        _confirmPassController.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please fill all fields')),
+                        const SnackBar(
+                            content: Text('Please fill all required fields')),
                       );
                       return;
                     }
@@ -183,11 +235,15 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       return;
                     }
 
+                    final selectedTheme = _themes[_selectedThemeIndex];
+                    final themeHex = selectedTheme['hex'] as String;
+
                     try {
                       await DatabaseService().createGroup(
-                          _nameController.text.trim(),
-                          _descController.text.trim(),
-                          _passController.text.trim()
+                        _nameController.text.trim(),
+                        _descController.text.trim(),
+                        _passController.text.trim(),
+                        themeHex,
                       );
 
                       if (!mounted) return;
@@ -198,11 +254,14 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
                       Navigator.pushAndRemoveUntil(
                         context,
-                        MaterialPageRoute(builder: (context) => const DashboardPage()),
+                        MaterialPageRoute(
+                            builder: (context) => const DashboardPage()),
                             (route) => false,
                       );
                     } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -229,7 +288,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         ),
       ),
 
-      // BOTTOM NAVIGATION BAR (disamakan dengan Dashboard & Join)
+      // Bottom Navigation
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: _navy,
@@ -327,4 +386,59 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       ),
     );
   }
+
+  Widget _buildThemeDropdown() {
+    return DropdownButtonFormField<int>(
+      value: _selectedThemeIndex,
+      items: List.generate(_themes.length, (index) {
+        final theme = _themes[index];
+        return DropdownMenuItem<int>(
+          value: index,
+          child: Row(
+            children: [
+              Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: theme['color'] as Color,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                theme['name'] as String,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: _navy,
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+      onChanged: (value) {
+        if (value == null) return;
+        setState(() => _selectedThemeIndex = value);
+      },
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: const Color(0xFFF5F5F5),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: _inputBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: _inputBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: _navy, width: 1.5),
+        ),
+      ),
+      dropdownColor: Colors.white,
+    );
+  }
+
 }
