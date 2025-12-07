@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'login_page.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
@@ -9,7 +10,11 @@ class ForgotPasswordPage extends StatefulWidget {
 }
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
-  bool _obscurePassword = true;
+  // Controller
+  final TextEditingController _emailController = TextEditingController();
+  // Firebase
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _isLoading = false;
 
   // Colors from your design
   final Color _navy = const Color(0xFF1A2342);
@@ -17,6 +22,63 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final Color _white = Colors.white;
   final Color _greyText = const Color(0xFF8D96A5);
   final Color _inputBorder = const Color(0xFFE0E0E0);
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendResetEmail() async {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your email')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Password reset link sent to $email'),
+        ),
+      );
+
+      // Go back to login after sending email
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+    } on FirebaseAuthException catch (e) {
+      String message = 'Failed to send reset email';
+
+      if (e.code == 'user-not-found') {
+        message = 'No user found with that email';
+      } else if (e.code == 'invalid-email') {
+        message = 'The email address is not valid';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,12 +89,17 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         children: [
           // Top Section
           Padding(
-            padding: const EdgeInsets.only(top: 80, left: 24, right: 24, bottom: 40),
+            padding: const EdgeInsets.only(
+              top: 80,
+              left: 24,
+              right: 24,
+              bottom: 40,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Welcome Back',
+                  'Forgot Password',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -41,7 +108,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Sign in to your account',
+                  'Enter your email to reset your password',
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.white70,
@@ -68,64 +135,53 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   topRight: Radius.circular(40),
                 ),
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 40,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Info text
+                      Text(
+                        "We’ll send a password reset link to your email.",
+                        style: TextStyle(
+                          color: _greyText,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
                       // Email
                       _label("Email Address"),
                       _inputField(
                         hint: "you@example.com",
                         keyboardType: TextInputType.emailAddress,
-                      ),
-                      const SizedBox(height: 20),
-
-                      // OTP
-                      _label("OTP"),
-                      _inputField(
-                        hint: "XXXXXX",
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Password
-                      _label("Password"),
-                      _inputField(
-                        hint: "••••••••",
-                        obscure: _obscurePassword,
-                        suffixIcon: IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                          icon: Icon(
-                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                            color: Colors.black54,
-                          ),
-                        ),
+                        controller: _emailController,
                       ),
                       const SizedBox(height: 40),
-
                       // RESET BUTTON
                       SizedBox(
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (context) => const LoginPage()),
-                            );
-                          },
+                          onPressed: _isLoading ? null : _sendResetEmail,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _navy,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: Text(
-                            "Reset",
+                          child: _isLoading
+                              ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                              : Text(
+                            "Send Reset Link",
                             style: TextStyle(
                               color: _gold,
                               fontSize: 18,
@@ -138,7 +194,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       const SizedBox(height: 40),
                       Divider(color: Colors.grey.withOpacity(0.3)),
                       const SizedBox(height: 20),
-
                       // FOOTER
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -154,7 +209,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                             onPressed: () {
                               Navigator.pushReplacement(
                                 context,
-                                MaterialPageRoute(builder: (context) => const LoginPage()),
+                                MaterialPageRoute(
+                                  builder: (context) => const LoginPage(),
+                                ),
                               );
                             },
                             child: Text(
@@ -178,7 +235,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       ),
     );
   }
-
   // LABEL
   Widget _label(String text) {
     return Text(
@@ -190,15 +246,16 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       ),
     );
   }
-
   // TEXT FIELD
   Widget _inputField({
     required String hint,
+    required TextEditingController controller,
     bool obscure = false,
     TextInputType keyboardType = TextInputType.text,
     Widget? suffixIcon,
   }) {
     return TextField(
+      controller: controller,
       obscureText: obscure,
       keyboardType: keyboardType,
       decoration: InputDecoration(
@@ -206,7 +263,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         fillColor: const Color(0xFFF5F5F5),
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.grey),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
