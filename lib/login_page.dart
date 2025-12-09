@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:finalproject/forgot_password_page.dart';
+import 'package:ultimate_to_do_list/forgot_password_page.dart';
+import 'package:ultimate_to_do_list/routes/app_route.dart';
 import 'signup_page.dart';
 import 'dashboard_page.dart';
 import 'services/auth_service.dart';
-
+import 'routes/app_route.dart';
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -65,17 +66,24 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    // Ambil nama user (displayName kalau ada, kalau nggak pakai prefix email)
+    // Extract Name from Email
+    // Example: "john@gmail.com" -> becomes "john"
     final user = _authService.currentUser;
-    final displayName = user?.displayName ??
-        (user?.email != null ? user!.email!.split('@').first : 'User');
+    String displayName = "User";
 
-    // Login sukses → ke Dashboard, hapus history (tidak bisa back ke login)
+    if (user != null && user.email != null) {
+      displayName = user.email!.split('@')[0];
+
+      // Optional: Capitalize first letter (e.g., "john" -> "John")
+      if (displayName.isNotEmpty) {
+        displayName = displayName[0].toUpperCase() + displayName.substring(1);
+      }
+    }
+
+    // 3. Pass Name to Dashboard
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-        builder: (_) => DashboardPage(userName: displayName),
-      ),
+      AppRoute.fade(DashboardPage(userName: displayName)),
           (route) => false,
     );
   }
@@ -198,10 +206,7 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                const ForgotPasswordPage(),
-                              ),
+                              AppRoute.slideFromRight(const ForgotPasswordPage()),
                             );
                           },
                           child: Text(
@@ -278,9 +283,7 @@ class _LoginPageState extends State<LoginPage> {
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(
-                                  builder: (context) => const SignupPage(),
-                                ),
+                                AppRoute.slideFromRight(const SignupPage()),
                               );
                             },
                             child: Text(

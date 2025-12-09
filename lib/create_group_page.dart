@@ -1,43 +1,117 @@
 import 'package:flutter/material.dart';
+import 'package:ultimate_to_do_list/routes/app_route.dart';
 import 'dashboard_page.dart';
-import 'join_group_page.dart'; // tambahkan ini untuk navigasi ke Join
+import 'join_group_page.dart';
+import 'services/database_service.dart';
 
 class CreateGroupPage extends StatefulWidget {
-  const CreateGroupPage({super.key});
+  final String userName;
+
+  const CreateGroupPage({
+    super.key,
+    this.userName = 'User',
+  });
 
   @override
   State<CreateGroupPage> createState() => _CreateGroupPageState();
 }
 
 class _CreateGroupPageState extends State<CreateGroupPage> {
-  int _selectedIndex = 2; // Index 2 untuk 'Create Group'
+  // Controllers
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descController = TextEditingController();
+  final TextEditingController _passController = TextEditingController();
+  final TextEditingController _confirmPassController = TextEditingController();
+
+  int _selectedIndex = 2;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
-  // Definisi Warna
+  // Theme list (8 themes)
+  final List<Map<String, dynamic>> _themes = [
+    {
+      'name': 'Navy',
+      'color': const Color(0xFF1A2342),
+      'hex': '0xFF1A2342',
+    },
+    {
+      'name': 'Gold',
+      'color': const Color(0xFFE0A938),
+      'hex': '0xFFE0A938',
+    },
+    {
+      'name': 'Emerald',
+      'color': const Color(0xFF16A34A),
+      'hex': '0xFF16A34A',
+    },
+    {
+      'name': 'Indigo',
+      'color': const Color(0xFF4F46E5),
+      'hex': '0xFF4F46E5',
+    },
+    {
+      'name': 'Crimson',
+      'color': const Color(0xFFB91C1C),
+      'hex': '0xFFB91C1C',
+    },
+    {
+      'name': 'Teal',
+      'color': const Color(0xFF0F766E),
+      'hex': '0xFF0F766E',
+    },
+    {
+      'name': 'Orange',
+      'color': const Color(0xFFF97316),
+      'hex': '0xFFF97316',
+    },
+    {
+      'name': 'Slate',
+      'color': const Color(0xFF1E293B),
+      'hex': '0xFF1E293B',
+    },
+  ];
+
+  int _selectedThemeIndex = 0;
+
+  // Colors
   final Color _navy = const Color(0xFF1A2342);
   final Color _gold = const Color(0xFFE0A938);
   final Color _background = const Color(0xFFF5F5F5);
   final Color _inputBorder = const Color(0xFFE0E0E0);
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descController.dispose();
+    _passController.dispose();
+    _confirmPassController.dispose();
+    super.dispose();
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+
       if (index == 0) {
-        // Kembali ke Dashboard/Home
+        // Home → Dashboard (fade, bawa nama)
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => DashboardPage()),
+          AppRoute.fade(
+            DashboardPage(userName: widget.userName),
+          ),
               (route) => false,
         );
       } else if (index == 1) {
-        // Ke Join Group Page
-        Navigator.pushReplacement(
+        // Go to Join Group (slide from right)
+        Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => JoinGroupPage()),
+          AppRoute.fade(
+            DashboardPage(userName: widget.userName),
+          ),
+              (route) => false,
         );
       }
-      // Index 2 adalah halaman ini sendiri
+      // index 2 = this page
     });
   }
 
@@ -48,7 +122,14 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       appBar: AppBar(
         backgroundColor: _navy,
         elevation: 0,
-        toolbarHeight: 0, // Menyembunyikan AppBar standar agar sesuai desain full screen
+        automaticallyImplyLeading: false,
+        title: Text(
+          'Hi ${widget.userName}',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -57,7 +138,6 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 20),
-              // Judul Halaman
               Text(
                 'Create Group',
                 style: TextStyle(
@@ -69,25 +149,39 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               ),
               const SizedBox(height: 40),
 
-              // Form Group Name
+              // Group Name
               _buildLabel('Group Name'),
               const SizedBox(height: 8),
-              _buildTextField(hint: 'John'),
+              _buildTextField(
+                hint: 'Project Alpha',
+                controller: _nameController,
+              ),
 
               const SizedBox(height: 20),
 
-              // Form Description
+              // Description
               _buildLabel('Description'),
               const SizedBox(height: 8),
-              _buildTextField(hint: 'Lorem Ipsum'),
+              _buildTextField(
+                hint: 'Short description...',
+                controller: _descController,
+              ),
 
               const SizedBox(height: 20),
 
-              // Form Password
+              // Group Theme
+              _buildLabel('Group Theme'),
+              const SizedBox(height: 8),
+              _buildThemeDropdown(),
+
+              const SizedBox(height: 20),
+
+              // Password
               _buildLabel('Password'),
               const SizedBox(height: 8),
               _buildTextField(
                 hint: '........',
+                controller: _passController,
                 obscure: _obscurePassword,
                 suffixIcon: IconButton(
                   icon: Icon(
@@ -97,20 +191,19 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     color: Colors.black54,
                   ),
                   onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
+                    setState(() => _obscurePassword = !_obscurePassword);
                   },
                 ),
               ),
 
               const SizedBox(height: 20),
 
-              // Form Confirm Password
+              // Confirm Password
               _buildLabel('Confirm Password'),
               const SizedBox(height: 8),
               _buildTextField(
                 hint: '........',
+                controller: _confirmPassController,
                 obscure: _obscureConfirmPassword,
                 suffixIcon: IconButton(
                   icon: Icon(
@@ -120,9 +213,9 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                     color: Colors.black54,
                   ),
                   onPressed: () {
-                    setState(() {
-                      _obscureConfirmPassword = !_obscureConfirmPassword;
-                    });
+                    setState(
+                          () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                    );
                   },
                 ),
               ),
@@ -134,17 +227,57 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Aksi Create Group
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Group Created!')),
-                    );
-                    // Kembali ke dashboard setelah create
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => DashboardPage()),
-                          (route) => false,
-                    );
+                  onPressed: () async {
+                    if (_nameController.text.trim().isEmpty ||
+                        _passController.text.trim().isEmpty ||
+                        _confirmPassController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please fill all required fields'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (_passController.text !=
+                        _confirmPassController.text) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Passwords do not match')),
+                      );
+                      return;
+                    }
+
+                    final selectedTheme = _themes[_selectedThemeIndex];
+                    final themeHex = selectedTheme['hex'] as String;
+
+                    try {
+                      await DatabaseService().createGroup(
+                        _nameController.text.trim(),
+                        _descController.text.trim(),
+                        _passController.text.trim(),
+                        themeHex,
+                      );
+
+                      if (!mounted) return;
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Group Created!')),
+                      );
+
+                      // Selesai create → balik ke Dashboard (fade, dengan nama user)
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        AppRoute.fade(
+                          DashboardPage(userName: widget.userName),
+                        ),
+                            (route) => false,
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _navy,
@@ -170,7 +303,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         ),
       ),
 
-      // BOTTOM NAVIGATION BAR (disamakan dengan Dashboard & Join)
+      // Bottom Navigation
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: _navy,
@@ -238,10 +371,12 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
   Widget _buildTextField({
     required String hint,
+    required TextEditingController controller,
     bool obscure = false,
     Widget? suffixIcon,
   }) {
     return TextField(
+      controller: controller,
       obscureText: obscure,
       decoration: InputDecoration(
         filled: true,
@@ -264,6 +399,61 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         ),
         suffixIcon: suffixIcon,
       ),
+    );
+  }
+
+  Widget _buildThemeDropdown() {
+    return DropdownButtonFormField<int>(
+      value: _selectedThemeIndex,
+      items: List.generate(_themes.length, (index) {
+        final theme = _themes[index];
+        return DropdownMenuItem<int>(
+          value: index,
+          child: Row(
+            children: [
+              Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: theme['color'] as Color,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                theme['name'] as String,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: _navy,
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+      onChanged: (value) {
+        if (value == null) return;
+        setState(() => _selectedThemeIndex = value);
+      },
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: const Color(0xFFF5F5F5),
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: _inputBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: _inputBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: _navy, width: 1.5),
+        ),
+      ),
+      dropdownColor: Colors.white,
     );
   }
 }
