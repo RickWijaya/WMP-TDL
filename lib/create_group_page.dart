@@ -115,7 +115,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         Navigator.pushAndRemoveUntil(
           context,
           AppRoute.fade(
-            DashboardPage(userName: widget.userName),
+            JoinGroupPage(userName: widget.userName),
           ),
               (route) => false,
         );
