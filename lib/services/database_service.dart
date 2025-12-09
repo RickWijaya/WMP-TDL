@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -170,11 +171,47 @@ class DatabaseService {
         .delete();
   }
 
-  // Leave Group
+  /// Delete Group (Leader Only)
+  Future<void> deleteGroup(String groupId) async {
+    await _db.collection('groups').doc(groupId).delete();
+  }
+
+  /// Leave Group with Random Admin Logic
   Future<void> leaveGroup(String groupId) async {
-    await _db.collection('groups').doc(groupId).update({
-      'members': FieldValue.arrayRemove([uid]),
-      'memberNames.$uid': FieldValue.delete(), // Remove my name
+    DocumentReference groupRef = _db.collection('groups').doc(groupId);
+
+    await _db.runTransaction((transaction) async {
+      DocumentSnapshot snapshot = await transaction.get(groupRef);
+      if (!snapshot.exists) return;
+
+      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+      List<dynamic> members = List.from(data['members'] ?? []);
+      Map<String, dynamic> memberNames = Map.from(data['memberNames'] ?? {});
+      String currentLeaderId = data['leaderId'];
+
+      // 1. Remove myself
+      members.remove(uid);
+      memberNames.remove(uid);
+
+      if (members.isEmpty) {
+        // 2. If no one left, delete group
+        transaction.delete(groupRef);
+      } else {
+        Map<String, dynamic> updates = {
+          'members': members,
+          'memberNames': memberNames,
+        };
+
+        // 3. If I was the leader, pick a random new leader
+        if (uid == currentLeaderId) {
+          final random = Random();
+          String newLeaderId = members[random.nextInt(members.length)];
+          updates['leaderId'] = newLeaderId;
+          updates['leaderName'] = memberNames[newLeaderId] ?? 'Leader';
+        }
+
+        transaction.update(groupRef, updates);
+      }
     });
   }
 }

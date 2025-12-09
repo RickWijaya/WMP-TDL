@@ -10,7 +10,7 @@ import 'login_page.dart';
 import 'services/auth_service.dart';
 import 'services/database_service.dart';
 import 'routes/app_route.dart';
-// ---------- DASHBOARD PAGE ----------
+
 class DashboardPage extends StatefulWidget {
   final String userName;
 

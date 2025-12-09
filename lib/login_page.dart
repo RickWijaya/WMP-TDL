@@ -4,7 +4,7 @@ import 'package:ultimate_to_do_list/routes/app_route.dart';
 import 'signup_page.dart';
 import 'dashboard_page.dart';
 import 'services/auth_service.dart';
-import 'routes/app_route.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -24,7 +24,6 @@ class _LoginPageState extends State<LoginPage> {
   final Color _navy = const Color(0xFF1A2342); // Biru tua gelap
   final Color _gold = const Color(0xFFE0A938); // Emas/Kuning
   final Color _white = Colors.white;
-  final Color _greyText = const Color(0xFF8D96A5);
   final Color _inputBorder = const Color(0xFFE0E0E0);
 
   final AuthService _authService = AuthService();
@@ -56,31 +55,29 @@ class _LoginPageState extends State<LoginPage> {
 
     if (!mounted) return;
 
-    setState(() => _isLoading = false);
-
     if (error != null) {
-      // AuthService sudah mapping error ke "Password or account mismatch"
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error)),
       );
       return;
     }
 
-    // Extract Name from Email
-    // Example: "john@gmail.com" -> becomes "john"
+    // Login Sukses
+    // Ambil Nama dari Email untuk ditampilkan (Opsional)
     final user = _authService.currentUser;
     String displayName = "User";
 
     if (user != null && user.email != null) {
       displayName = user.email!.split('@')[0];
-
-      // Optional: Capitalize first letter (e.g., "john" -> "John")
       if (displayName.isNotEmpty) {
         displayName = displayName[0].toUpperCase() + displayName.substring(1);
       }
     }
 
-    // 3. Pass Name to Dashboard
+    setState(() => _isLoading = false);
+
+    // Langsung masuk Dashboard (Role dikelola per grup di database)
     Navigator.pushAndRemoveUntil(
       context,
       AppRoute.fade(DashboardPage(userName: displayName)),

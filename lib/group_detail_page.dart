@@ -58,6 +58,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // HEADER SECTION
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
@@ -87,7 +88,7 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                     ),
                   ),
 
-                  // MEMBER LIST
+                  // MEMBER LIST CARD
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
                     child: Container(
@@ -131,14 +132,37 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
                             },
                           ),
 
+                          // ACTION BUTTONS (Leave & Delete)
                           Padding(
                             padding: const EdgeInsets.all(16.0),
-                            child: TextButton(
-                              onPressed: () => _showLeaveDialog(),
-                              child: const Text(
-                                'Leave Group',
-                                style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.w500),
-                              ),
+                            child: Column(
+                              children: [
+                                TextButton(
+                                  onPressed: () => _showLeaveDialog(amILeader),
+                                  child: const Text(
+                                    'Leave Group',
+                                    style: TextStyle(
+                                      color: Colors.red, 
+                                      fontSize: 16, 
+                                      fontWeight: FontWeight.w500
+                                    ),
+                                  ),
+                                ),
+                                if (amILeader) ...[
+                                  const SizedBox(height: 8),
+                                  TextButton(
+                                    onPressed: () => _showDeleteDialog(),
+                                    child: const Text(
+                                      'Delete Group',
+                                      style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ]
+                              ],
                             ),
                           ),
                         ],
@@ -185,12 +209,17 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
     );
   }
 
-  void _showLeaveDialog() {
+  void _showLeaveDialog(bool amILeader) {
+    String content = 'Are you sure you want to leave ${widget.groupName}?';
+    if (amILeader) {
+      content += '\n\nSince you are the Admin, a new Admin will be randomly assigned to another member.';
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Leave Group'),
-        content: Text('Are you sure you want to leave ${widget.groupName}?'),
+        content: Text(content),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
@@ -205,6 +234,39 @@ class _GroupDetailPageState extends State<GroupDetailPage> {
               );
             },
             child: const Text('Leave', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Group'),
+        content: const Text('Are you sure you want to delete this group permanently? All tasks and members will be removed. This action cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // Tutup dialog
+              
+              await _dbService.deleteGroup(widget.groupId);
+
+              if (!mounted) return;
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Group deleted successfully')),
+              );
+
+              Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DashboardPage()),
+                      (route) => false
+              );
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

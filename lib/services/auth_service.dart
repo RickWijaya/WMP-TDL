@@ -5,9 +5,11 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  // Sign Up dengan Role (Default: member)
   Future<String?> signUp({
     required String email,
     required String password,
+    String role = 'member', // Tambahan parameter role
   }) async {
     try {
       final cred = await _auth.createUserWithEmailAndPassword(
@@ -15,9 +17,11 @@ class AuthService {
         password: password,
       );
 
+      // Simpan data user ke Firestore dengan field 'role'
       await _db.collection('users').doc(cred.user!.uid).set({
         "uid": cred.user!.uid,
         "email": email,
+        "role": role, // Role disimpan di sini (admin/member)
         "groupIds": [],
         "createdAt": FieldValue.serverTimestamp(),
       });
@@ -53,6 +57,18 @@ class AuthService {
 
   Future<void> logout() async {
     await _auth.signOut();
+  }
+
+  // Fungsi baru untuk mendapatkan Role pengguna saat ini
+  Future<String> getUserRole() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      final doc = await _db.collection('users').doc(user.uid).get();
+      if (doc.exists && doc.data() != null && doc.data()!.containsKey('role')) {
+        return doc.get('role'); // Mengembalikan 'admin' atau 'member'
+      }
+    }
+    return 'member'; // Default jika tidak ditemukan
   }
 
   User? get currentUser => _auth.currentUser;
