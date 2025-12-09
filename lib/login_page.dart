@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:finalproject/forgot_password_page.dart';
+import 'package:ultimate_to_do_list/forgot_password_page.dart';
+import 'package:ultimate_to_do_list/routes/app_route.dart';
 import 'signup_page.dart';
 import 'dashboard_page.dart';
 import 'services/auth_service.dart';
