@@ -9,9 +9,8 @@ import 'join_group_page.dart';
 import 'login_page.dart';
 import 'services/auth_service.dart';
 import 'services/database_service.dart';
-
+import 'routes/app_route.dart';
 // ---------- DASHBOARD PAGE ----------
-
 class DashboardPage extends StatefulWidget {
   final String userName;
 
@@ -55,14 +54,20 @@ class _DashboardPageState extends State<DashboardPage> {
       _selectedIndex = index;
 
       if (index == 1) {
-        Navigator.push(
+        Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const JoinGroupPage()),
+          AppRoute.fade(
+            JoinGroupPage(),
+          ),
+              (route) => false,
         );
       } else if (index == 2) {
-        Navigator.push(
+        Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const CreateGroupPage()),
+          AppRoute.fade(
+            CreateGroupPage(),
+          ),
+              (route) => false,
         );
       }
     });
@@ -75,7 +80,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const LoginPage()),
+      AppRoute.fade(const LoginPage()),
           (route) => false,
     );
   }
@@ -250,11 +255,11 @@ class _DashboardPageState extends State<DashboardPage> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) =>
-                ClassPage(className: title, groupId: groupDocId),
+          AppRoute.slideFromRight(
+            ClassPage(className: title, groupId: groupDocId),
           ),
         );
+
       },
       child: Card(
         margin: const EdgeInsets.only(bottom: 16.0),

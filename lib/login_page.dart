@@ -3,7 +3,7 @@ import 'package:finalproject/forgot_password_page.dart';
 import 'signup_page.dart';
 import 'dashboard_page.dart';
 import 'services/auth_service.dart';
-
+import 'routes/app_route.dart';
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -82,9 +82,7 @@ class _LoginPageState extends State<LoginPage> {
     // 3. Pass Name to Dashboard
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-        builder: (_) => DashboardPage(userName: displayName),
-      ),
+      AppRoute.fade(DashboardPage(userName: displayName)),
           (route) => false,
     );
   }
@@ -207,10 +205,7 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                const ForgotPasswordPage(),
-                              ),
+                              AppRoute.slideFromRight(const ForgotPasswordPage()),
                             );
                           },
                           child: Text(
@@ -287,9 +282,7 @@ class _LoginPageState extends State<LoginPage> {
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(
-                                  builder: (context) => const SignupPage(),
-                                ),
+                                AppRoute.slideFromRight(const SignupPage()),
                               );
                             },
                             child: Text(

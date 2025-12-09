@@ -1,3 +1,4 @@
+import 'package:finalproject/routes/app_route.dart';
 import 'package:flutter/material.dart';
 import 'dashboard_page.dart';
 import 'create_group_page.dart';
@@ -37,13 +38,14 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
     if (index == 0) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const DashboardPage()),
+        AppRoute.fade(const DashboardPage()),
             (route) => false,
       );
     } else if (index == 2) {
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const CreateGroupPage()),
+        AppRoute.fade(const CreateGroupPage()),
+            (route) => false,
       );
     }
 
@@ -146,8 +148,7 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
                     );
                     Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(
-                          builder: (context) => const DashboardPage()),
+                      AppRoute.fade(const DashboardPage()),
                           (route) => false,
                     );
                   } else {

@@ -1,3 +1,4 @@
+import 'package:finalproject/routes/app_route.dart';
 import 'package:flutter/material.dart';
 import 'dashboard_page.dart';
 import 'join_group_page.dart';
@@ -5,6 +6,7 @@ import 'services/database_service.dart';
 
 class CreateGroupPage extends StatefulWidget {
   final String userName;
+
   const CreateGroupPage({
     super.key,
     this.userName = 'User',
@@ -19,8 +21,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
-  final TextEditingController _confirmPassController =
-  TextEditingController();
+  final TextEditingController _confirmPassController = TextEditingController();
 
   int _selectedIndex = 2;
   bool _obscurePassword = true;
@@ -90,19 +91,27 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+
       if (index == 0) {
+        // Home → Dashboard (fade, bawa nama)
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const DashboardPage()),
+          AppRoute.fade(
+            DashboardPage(userName: widget.userName),
+          ),
               (route) => false,
         );
       } else if (index == 1) {
-        Navigator.pushReplacement(
+        // Go to Join Group (slide from right)
+        Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const JoinGroupPage()),
+          AppRoute.fade(
+            DashboardPage(userName: widget.userName),
+          ),
+              (route) => false,
         );
       }
-      // index 2 is this page
+      // index 2 = this page
     });
   }
 
@@ -205,7 +214,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                   ),
                   onPressed: () {
                     setState(
-                            () => _obscureConfirmPassword = !_obscureConfirmPassword);
+                          () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                    );
                   },
                 ),
               ),
@@ -223,14 +233,17 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                         _confirmPassController.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('Please fill all required fields')),
+                          content: Text('Please fill all required fields'),
+                        ),
                       );
                       return;
                     }
 
-                    if (_passController.text != _confirmPassController.text) {
+                    if (_passController.text !=
+                        _confirmPassController.text) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Passwords do not match')),
+                        const SnackBar(
+                            content: Text('Passwords do not match')),
                       );
                       return;
                     }
@@ -252,10 +265,12 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                         const SnackBar(content: Text('Group Created!')),
                       );
 
+                      // Selesai create → balik ke Dashboard (fade, dengan nama user)
                       Navigator.pushAndRemoveUntil(
                         context,
-                        MaterialPageRoute(
-                            builder: (context) => const DashboardPage()),
+                        AppRoute.fade(
+                          DashboardPage(userName: widget.userName),
+                        ),
                             (route) => false,
                       );
                     } catch (e) {
@@ -423,7 +438,8 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       decoration: InputDecoration(
         filled: true,
         fillColor: const Color(0xFFF5F5F5),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: _inputBorder),
@@ -440,5 +456,4 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       dropdownColor: Colors.white,
     );
   }
-
 }

@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'group_detail_page.dart';
 import 'services/database_service.dart';
-
+import 'routes/app_route.dart';
 class ClassPage extends StatefulWidget {
   final String className;
   final String groupId;
@@ -68,11 +68,9 @@ class _ClassPageState extends State<ClassPage> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => GroupDetailPage(
-                    groupName: widget.className,
-                    groupId: widget.groupId,
-                  ),
+                AppRoute.slideFromBottom(
+                  GroupDetailPage(groupName: widget.className,
+                    groupId: widget.groupId),
                 ),
               );
             },
