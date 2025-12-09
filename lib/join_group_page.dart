@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ultimate_to_do_list/routes/app_route.dart';
 import 'package:flutter/material.dart';
 import 'dashboard_page.dart';
@@ -26,6 +27,14 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
   final Color _gold = const Color(0xFFE0A938);
   final Color _background = const Color(0xFFFFFFFF);
   final Color _inputBorder = const Color(0xFFE0E0E0);
+
+  String get _displayUserName {
+    if (widget.userName != 'User' && widget.userName.trim().isNotEmpty) {
+      return widget.userName;
+    }
+    final user = FirebaseAuth.instance.currentUser;
+    return user?.email ?? 'User';
+  }
 
   @override
   void dispose() {

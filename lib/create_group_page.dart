@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:ultimate_to_do_list/routes/app_route.dart';
 import 'dashboard_page.dart';
@@ -22,6 +23,14 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
   final TextEditingController _confirmPassController = TextEditingController();
+
+  String get _displayUserName {
+    if (widget.userName != 'User' && widget.userName.trim().isNotEmpty) {
+      return widget.userName;
+    }
+    final user = FirebaseAuth.instance.currentUser;
+    return user?.email ?? 'User';
+  }
 
   int _selectedIndex = 2;
   bool _obscurePassword = true;
@@ -124,7 +133,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
         elevation: 0,
         automaticallyImplyLeading: false,
         title: Text(
-          'Hi ${widget.userName}',
+          'Hi $_displayUserName',
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
