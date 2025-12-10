@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
+
 import 'edit_group_page.dart';
 import 'group_page.dart';
 import 'create_group_page.dart';
@@ -30,6 +31,10 @@ class _DashboardPageState extends State<DashboardPage> {
   final DatabaseService _dbService = DatabaseService();
   final String _uid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  late Stream<QuerySnapshot> _groupStream;
+
   final Color _navy = const Color(0xFF1A2342);
   final Color _gold = const Color(0xFFE0A938);
 
@@ -40,6 +45,19 @@ class _DashboardPageState extends State<DashboardPage> {
     Colors.orangeAccent,
     Colors.teal,
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // default: all groups the user joined
+    _groupStream = _dbService.getUserGroups();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   String get _displayUserName {
     if (widget.userName != 'User' && widget.userName.trim().isNotEmpty) {
@@ -57,7 +75,7 @@ class _DashboardPageState extends State<DashboardPage> {
         Navigator.pushAndRemoveUntil(
           context,
           AppRoute.fade(
-            JoinGroupPage(),
+            const JoinGroupPage(),
           ),
               (route) => false,
         );
@@ -65,7 +83,7 @@ class _DashboardPageState extends State<DashboardPage> {
         Navigator.pushAndRemoveUntil(
           context,
           AppRoute.fade(
-            CreateGroupPage(),
+            const CreateGroupPage(),
           ),
               (route) => false,
         );
@@ -83,6 +101,13 @@ class _DashboardPageState extends State<DashboardPage> {
       AppRoute.fade(const LoginPage()),
           (route) => false,
     );
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchQuery = value;
+      _groupStream = _dbService.searchUserGroups(_searchQuery);
+    });
   }
 
   @override
@@ -108,8 +133,8 @@ class _DashboardPageState extends State<DashboardPage> {
                 _handleLogout();
               }
             },
-            itemBuilder: (context) => [
-              const PopupMenuItem<String>(
+            itemBuilder: (context) => const [
+              PopupMenuItem<String>(
                 value: 'logout',
                 child: ListTile(
                   leading: Icon(Icons.logout, color: Colors.red),
@@ -124,73 +149,130 @@ class _DashboardPageState extends State<DashboardPage> {
         ],
       ),
 
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _dbService.getUserGroups(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      // ================= BODY =================
+      body: Column(
+        children: [
+          // ---------- SEARCH BAR ----------
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'Search your groups...',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                  BorderSide(color: _navy, width: 1.5),
+                ),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    _onSearchChanged('');
+                  },
+                )
+                    : null,
+              ),
+            ),
+          ),
 
-          var docs = snapshot.data?.docs ?? [];
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16.0),
-            itemCount: docs.length + 1,
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                return const Padding(
-                  padding: EdgeInsets.only(bottom: 20.0),
-                  child: Text(
-                    'Your Groups',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                );
-              }
-
-              var doc = docs[index - 1];
-              var data = doc.data() as Map<String, dynamic>;
-
-              String title = data['groupName'] ?? 'Unnamed';
-              String leaderName = data['leaderName'] ?? 'Unknown';
-              String leaderId = data['leaderId'] ?? '';
-              List members = data['members'] ?? [];
-              String memberCount =
-                  '${members.length} Member${members.length > 1 ? 's' : ''}';
-
-              Color cardColor;
-              final String? colorHex = data['groupColor'] as String?;
-              if (colorHex != null) {
-                try {
-                  cardColor = Color(int.parse(colorHex));
-                } catch (_) {
-                  cardColor =
-                  _cardColors[(index - 1) % _cardColors.length];
+          // ---------- GROUP LIST ----------
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _groupStream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
                 }
-              } else {
-                cardColor = _cardColors[(index - 1) % _cardColors.length];
-              }
 
-              String groupDocId = doc.id;
-              String groupShareId = data['groupId'] ?? groupDocId;
+                var docs = snapshot.data?.docs ?? [];
 
-              return _buildGroupCard(
-                context,
-                title,
-                memberCount,
-                leaderName,
-                cardColor,
-                leaderId == _uid,
-                groupDocId,
-                groupShareId,
-              );
-            },
-          );
-        },
+                if (docs.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'No groups found.',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16.0),
+                  itemCount: docs.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return const Padding(
+                        padding: EdgeInsets.only(bottom: 20.0),
+                        child: Text(
+                          'Your Groups',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      );
+                    }
+
+                    var doc = docs[index - 1];
+                    var data = doc.data() as Map<String, dynamic>;
+
+                    String title = data['groupName'] ?? 'Unnamed';
+                    String leaderName = data['leaderName'] ?? 'Unknown';
+                    String leaderId = data['leaderId'] ?? '';
+                    List members = data['members'] ?? [];
+                    String memberCount =
+                        '${members.length} Member${members.length > 1 ? 's' : ''}';
+
+                    Color cardColor;
+                    final String? colorHex = data['groupColor'] as String?;
+                    if (colorHex != null) {
+                      try {
+                        cardColor = Color(int.parse(colorHex));
+                      } catch (_) {
+                        cardColor =
+                        _cardColors[(index - 1) % _cardColors.length];
+                      }
+                    } else {
+                      cardColor = _cardColors[(index - 1) % _cardColors.length];
+                    }
+
+                    String groupDocId = doc.id;
+                    String groupShareId = data['groupId'] ?? groupDocId;
+
+                    return _buildGroupCard(
+                      context,
+                      title,
+                      memberCount,
+                      leaderName,
+                      cardColor,
+                      leaderId == _uid,
+                      groupDocId,
+                      groupShareId,
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
 
+      // ================= BOTTOM NAV =================
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: _navy,
@@ -241,6 +323,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  // ================== CARD BUILDER ==================
   Widget _buildGroupCard(
       BuildContext context,
       String title,
@@ -259,7 +342,6 @@ class _DashboardPageState extends State<DashboardPage> {
             ClassPage(className: title, groupId: groupDocId),
           ),
         );
-
       },
       child: Card(
         margin: const EdgeInsets.only(bottom: 16.0),

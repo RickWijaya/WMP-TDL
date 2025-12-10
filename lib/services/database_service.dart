@@ -79,6 +79,23 @@ class DatabaseService {
         .snapshots();
   }
 
+  Stream<QuerySnapshot> searchUserGroups(String search) {
+    final String q = search.trim();
+
+    // If empty → just return all groups the user joined
+    if (q.isEmpty) {
+      return getUserGroups();
+    }
+
+    // Firestore prefix search on groupName (requires index)
+    return _db
+        .collection('groups')
+        .where('members', arrayContains: uid)
+        .orderBy('groupName')
+        .startAt([q])
+        .endAt([q + '\uf8ff'])
+        .snapshots();
+  }
   // Kick Member
   Future<void> kickMember(String groupId, String memberId) async {
     await _db.collection('groups').doc(groupId).update({
