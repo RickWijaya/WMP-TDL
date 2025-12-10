@@ -1,8 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ultimate_to_do_list/routes/app_route.dart';
 import 'package:flutter/material.dart';
+import 'package:ultimate_to_do_list/services/auth_service.dart';
 import 'dashboard_page.dart';
 import 'create_group_page.dart';
+import 'login_page.dart';
 import 'services/database_service.dart';
 
 class JoinGroupPage extends StatefulWidget {
@@ -18,6 +20,7 @@ class JoinGroupPage extends StatefulWidget {
 
 class _JoinGroupPageState extends State<JoinGroupPage> {
   int _selectedIndex = 1;
+  final AuthService _authService = AuthService();
   bool _obscurePassword = true;
 
   final TextEditingController _groupIdController = TextEditingController();
@@ -60,22 +63,55 @@ class _JoinGroupPageState extends State<JoinGroupPage> {
 
     setState(() => _selectedIndex = index);
   }
+  Future<void> _handleLogout() async {
+    await _authService.logout();
+
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      AppRoute.fade(const LoginPage()),
+          (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _background,
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         backgroundColor: _navy,
         elevation: 0,
         automaticallyImplyLeading: false,
         title: Text(
-          'Hi ${widget.userName}',
+          'Hi $_displayUserName',
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onSelected: (value) {
+              if (value == 'logout') {
+                _handleLogout();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: ListTile(
+                  leading: Icon(Icons.logout, color: Colors.red),
+                  title: Text(
+                    'Logout',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),

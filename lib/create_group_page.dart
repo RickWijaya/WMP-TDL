@@ -1,8 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:ultimate_to_do_list/routes/app_route.dart';
+import 'package:ultimate_to_do_list/services/auth_service.dart';
 import 'dashboard_page.dart';
 import 'join_group_page.dart';
+import 'login_page.dart';
 import 'services/database_service.dart';
 
 class CreateGroupPage extends StatefulWidget {
@@ -35,8 +37,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   int _selectedIndex = 2;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-
-  // Theme list (8 themes)
+  final AuthService _authService = AuthService();
   final List<Map<String, dynamic>> _themes = [
     {
       'name': 'Navy',
@@ -123,11 +124,21 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       // index 2 = this page
     });
   }
+  Future<void> _handleLogout() async {
+    await _authService.logout();
 
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      AppRoute.fade(const LoginPage()),
+          (route) => false,
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _background,
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         backgroundColor: _navy,
         elevation: 0,
@@ -139,6 +150,28 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onSelected: (value) {
+              if (value == 'logout') {
+                _handleLogout();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: ListTile(
+                  leading: Icon(Icons.logout, color: Colors.red),
+                  title: Text(
+                    'Logout',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(

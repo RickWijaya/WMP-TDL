@@ -101,7 +101,6 @@ class _ClassPageState extends State<ClassPage> {
             itemBuilder: (context, index) {
               var task = tasks[index];
 
-              // 🔥 GLOBAL completion flag – everyone sees the same
               final data = task.data() as Map<String, dynamic>;
               bool isCompleted = data['isCompleted'] ?? false;
 
@@ -138,7 +137,7 @@ class _ClassPageState extends State<ClassPage> {
       description: description,
       date: date,
       isCompleted: isCompleted,
-      isLeader: _isLeader, // 🔥 tell the card if this user is leader
+      isLeader: _isLeader,
       onCheckboxChanged: (bool value) {
         if (value && !isCompleted) {
           // going from UN-done → done (for everyone)
