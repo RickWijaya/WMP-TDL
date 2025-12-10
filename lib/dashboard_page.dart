@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'edit_group_page.dart';
-import 'class_page.dart';
+import 'group_page.dart';
 import 'create_group_page.dart';
 import 'join_group_page.dart';
 import 'login_page.dart';

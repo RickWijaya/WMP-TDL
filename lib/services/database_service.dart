@@ -17,7 +17,6 @@ class DatabaseService {
     String myName =
         user?.displayName ?? user?.email?.split('@')[0] ?? 'Leader';
 
-    // Generate unique Firestore document and use its ID as groupId
     DocumentReference docRef = _db.collection('groups').doc();
     String groupId = docRef.id;
 
@@ -26,16 +25,16 @@ class DatabaseService {
       'description': description,
       'password': password,
       'leaderId': uid,
-      'leaderName': myName, // Store leader name
+      'leaderName': myName,
       'members': [uid],
       'memberNames': {uid: myName},
       'createdAt': FieldValue.serverTimestamp(),
-      'groupId': groupId, // immutable, random, used for joining
-      'groupColor': themeColorHex, // theme hex string
+      'groupId': groupId,
+      'groupColor': themeColorHex,
     });
   }
 
-  // Join Group (NOW BY groupId, not groupName)
+  // Join Group
   Future<String?> joinGroup(String groupId, String password) async {
     try {
       QuerySnapshot query = await _db
@@ -142,7 +141,7 @@ class DatabaseService {
     return await _db.collection('groups').doc(groupId).get();
   }
 
-  // Update Group (NOW ALSO UPDATES groupColor)
+  // Update Group
   Future<void> updateGroup(
       String groupId,
       String name,
@@ -171,12 +170,12 @@ class DatabaseService {
         .delete();
   }
 
-  /// Delete Group (Leader Only)
+  // Delete Group (Leader Only)
   Future<void> deleteGroup(String groupId) async {
     await _db.collection('groups').doc(groupId).delete();
   }
 
-  /// Leave Group with Random Admin Logic
+  // Leave Group with Random Admin Logic
   Future<void> leaveGroup(String groupId) async {
     DocumentReference groupRef = _db.collection('groups').doc(groupId);
 
